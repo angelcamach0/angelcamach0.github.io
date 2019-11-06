@@ -180,14 +180,14 @@ html {
   border-width: 5px; }
 
 .primary-black--hover {
-  background: #3b4eda;
+  background: #da3b3b;
   color: #fff; }
   .primary-black--hover:hover {
     background: #000;
     color: #fff; }
 
 .primary-dark--hover {
-  background: #3b4eda;
+  background: #da3b3b;
   color: #fff; }
   .primary-dark--hover:hover {
     background: gray;
@@ -744,11 +744,11 @@ h1, h2, h3, h4, h5,
     -webkit-box-shadow: 4px 0 20px -5px rgba(0, 0, 0, 0.2);
     box-shadow: 4px 0 20px -5px rgba(0, 0, 0, 0.2); }
     .sticky-wrapper.is-sticky .site-navbar .site-logo a {
-      color: #3b4eda; }
+      color: #da3b3b; }
     .sticky-wrapper.is-sticky .site-navbar ul li a {
       color: #000 !important; }
       .sticky-wrapper.is-sticky .site-navbar ul li a.active {
-        color: #3b4eda !important; }
+        color: #da3b3b !important; }
   .sticky-wrapper .shrink {
     padding-top: 0px !important;
     padding-bottom: 0px !important; }
