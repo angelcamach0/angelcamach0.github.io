@@ -691,7 +691,7 @@ Reference: http://blog.rrwd.nl/2015/04/04/the-screen-reader-text-class-why-and-h
 
 .mejs__captions-selected,
 .mejs__chapters-selected {
-    color: rgba(33, 248, 248, 1);
+    color: rgb(248, 33, 33);
 }
 
 .mejs__captions-translations {
