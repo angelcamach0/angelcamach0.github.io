@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <!--Stuff for chat box-->
+        <title>Chat - Customer Module</title>
+        <link type="text/css" rel="stylesheet" href="style.css" />
+
+        <!--Stuff I fogot what it was for-->
         <script type = "text/javascript" src = "test.js" ></script>
         <script type = "text/javascript">
                function sayHello() {
@@ -19,7 +24,9 @@
         </p>
         <button onclick="window.location.href = 'https://www.duckduckgo.com';"> Duck .. Duck .. Go!! </button>
         <p> This is just a line of text that will seperate my test from the rest. </p>
+        <p>
         <button onclick="window.location.href = JavaSript/test.js"> Activate me! </button>
+        </p>
         <img src="http://i.stack.imgur.com/SBv4T.gif" alt="this slowpoke moves"  width=250/>
         
         <!--
@@ -45,10 +52,39 @@
             </Ri:a>
             ```
         </p>
-
+        <p>
         These are some of my favorite songs of 2020. (I Know they are not from 2020 but this year these are my favorite songs)
+        </p>
         <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/oxoqm05c7yA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
         <iframe width="560" height="315" src="https://www.youtube.com/embed/VjjVg9zBnnw" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+
+        <!--- Chat box --->
+
+         
+    <div id="wrapper">
+    <div id="menu">
+        <p class="welcome">Welcome, <b></b></p>
+        <p class="logout"><a id="exit" href="#">Exit Chat</a></p>
+        <div style="clear:both"></div>
+    </div>
+     
+    <div id="chatbox"></div>
+     
+    <form name="message" action="">
+        <input name="usermsg" type="text" id="usermsg" size="63" />
+        <input name="submitmsg" type="submit"  id="submitmsg" value="Send" />
+    </form>
+</div>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3/jquery.min.js"></script>
+<script type="text/javascript">
+// jQuery Document
+$(document).ready(function(){
+ 
+});
+</script>
+
+
 
 
 
