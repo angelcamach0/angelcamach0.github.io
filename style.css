@@ -2,7 +2,7 @@
 body {
     font:12px arial;
     color: #222;
-    text-align:left;
+    text-align:center;
     padding:35px; }
   
 form, p, span {
@@ -29,7 +29,7 @@ a {
     #loginform p { margin: 5px; }
   
 #chatbox {
-    text-align:left;
+    text-align:center;
     margin:0 auto;
     margin-bottom:25px;
     padding:10px;
@@ -41,9 +41,13 @@ a {
   
 #usermsg {
     width:395px;
+
     border:1px solid #ACD8F0; }
   
-#submit { width: 60px; }
+#submit {
+     width: 60px; 
+     
+    }
   
 .error { color: #ff0000; }
   
