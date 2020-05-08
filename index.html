@@ -6,88 +6,181 @@
         <link type="text/css" rel="stylesheet" href="style.css" />
 
         <!--Stuff I fogot what it was for-->
-        <script type = "text/javascript" src = "test.js" ></script>
-        <script type = "text/javascript">
-               function sayHello() {
-                  alert("Hello World")
-               }
-         </script>
-        
-        
+        <script type = "text/javascript" src = "JavaScript/test.js" ></script>
+       
+
         <Style>body{background-color: hsla(202, 82%, 78%, 0.644);}</Style>
         <h1> The Ark Projects. </h1>
+
+        <!--- Vertical line --->
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            .vl {
+                border-left: 6px dashed rgb(0, 92, 69);
+                height: 1170px;
+                position: absolute;
+                left: 5%;
+                margin-left: -3px;
+                top: 0;
+            }
+        </style>
+
     </head>
     <body> 
+       
+        <!--call to verical line-->
+        <div class="vl"></div>
+
+
         <p> Hello World this is a website where I will be learning to code html not only that but to learn more about web developing. <br>
             I want to start this website from scratch and make it something amazing. Something I created by my self with no templates no anything. <br>
-            I know i misspell a lot of words but this is not a blog this is some where where I will come and make mistakes to learn. <br> 
-        </p>
+            I know i misspell a lot of words but this is not a blog this is some where where I will come and make mistakes to learn. <br> </p>
+        
+
         <button onclick="window.location.href = 'https://www.duckduckgo.com';"> Duck .. Duck .. Go!! </button>
         <p> This is just a line of text that will seperate my test from the rest. </p>
-        <p>
-        <button onclick="window.location.href = JavaSript/test.js"> Activate me! </button>
-        </p>
+        
+        <p><button onclick="window.location.href = JavaSript/test.js"> Activate me! </button> </p>
+
+        <!--this is the gif of the pink thing-->
+        <img src="http://i.stack.imgur.com/SBv4T.gif" alt="this slowpoke moves"  width=250/>
+        <img src="http://i.stack.imgur.com/SBv4T.gif" alt="this slowpoke moves"  width=250/>
+        <img src="http://i.stack.imgur.com/SBv4T.gif" alt="this slowpoke moves"  width=250/>
         <img src="http://i.stack.imgur.com/SBv4T.gif" alt="this slowpoke moves"  width=250/>
         
-        <!--
-        <p>
-        <button onclick="<img src="http://i.stack.imgur.com/SBv4T.gif" alt="this slowpoke moves"  width=250/>">
-        </p>
-        -->
+
+        <!--button that says hello-->
+        <p><input type = "button" onclick = "sayHello()" value = "Say Hello" /></p>
+        <!--button that makes confetti-->
+        <p><input type = "button" onclick = "confetti()" value = "Confetti" /></p>
 
 
-        <!--
-        <p>
-        <div  style="display:none;" class="answer_list" > WELCOME</div>
-        <input type="button" name="answer" >
-        </p>
-        -->
-        <p>
-        <input type = "button" onclick = "sayHello()" value = "Say Hello" />
-        </p>
-        <p>
-            This is a test:
-            ```<Ri:a>
-                This is a test
-            </Ri:a>
-            ```
-        </p>
-        <p>
-        These are some of my favorite songs of 2020. (I Know they are not from 2020 but this year these are my favorite songs)
-        </p>
+
+        
+        <p>These are some of my favorite songs of 2020. (I Know they are not from 2020 but this year these are my favorite songs)</p>
+        <!--the youtube videos-->
         <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/oxoqm05c7yA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
         <iframe width="560" height="315" src="https://www.youtube.com/embed/VjjVg9zBnnw" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 
         <!--- Chat box --->
+        <div id="wrapper">
+        <div id="menu">
+            <p class="welcome">Welcome, <b></b></p>
+            <p class="logout"><a id="exit" href="#">Exit Chat</a></p>
+            <div style="clear:both"></div>
+        </div>
 
-         
-    <div id="wrapper">
-    <div id="menu">
-        <p class="welcome">Welcome, <b></b></p>
-        <p class="logout"><a id="exit" href="#">Exit Chat</a></p>
-        <div style="clear:both"></div>
-    </div>
-     
-    <div id="chatbox"></div>
-     
-    <form name="message" action="">
-        <input name="usermsg" type="text" id="usermsg" size="63" />
-        <input name="submitmsg" type="submit"  id="submitmsg" value="Send" />
-    </form>
-</div>
-<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3/jquery.min.js"></script>
-<script type="text/javascript">
-// jQuery Document
-$(document).ready(function(){
- 
-});
-</script>
-
-
-
-
+        <div id="chatbox"></div>
+        
+        <form name="message" action="">
+            <input name="usermsg" type="text" id="usermsg" size="63" />
+            <input name="submitmsg" type="submit"  id="submitmsg" value="Send" />
+        </form>
+        </div>
+        
+        <!--CONFETI STATRST HERE!-->
+        <canvas id="canvas"></canvas>
 
     </body>
-    <!--<script> src="JavaScript/test.js"</script> -->
+
+    <!--Scripts go here since aperently I dunno how to communicate between folders-->
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3/jquery.min.js"></script>
+    <script type="text/javascript">
+        // jQuery Document
+        $(document).ready(function(){    });
+    </script>
+    <!--Script that says Hello-->
+    <script> src="JavaScript/test.js"</script>
+    <script type = "text/javascript">
+        function sayHello() {
+           alert("Goodbye World!")
+        }
+    </script>
+
+    <!--confetti script-->
+    <script>
+        window.onload = function confetti(){
+	//canvas init
+	var canvas = document.getElementById("canvas");
+	var ctx = canvas.getContext("2d");
+	//canvas dimensions
+	var W = window.innerWidth;
+	var H = window.innerHeight;
+	canvas.width = W;
+	canvas.height = H;
+	//snowflake particles
+	var mp = 25; //max particles
+	var particles = [];
+	for(var i = 0; i < mp; i++)
+	{
+		particles.push({
+			x: Math.random()*W, //x-coordinate
+			y: Math.random()*H, //y-coordinate
+			r: Math.random()*4+1, //radius
+			d: Math.random()*mp, //density
+            color: "rgba(" + Math.floor((Math.random() * 255)) +", " + Math.floor((Math.random() * 255)) +", " + Math.floor((Math.random() * 255)) + ", 0.8)"
+		})
+	}
+	//Lets draw the flakes
+	function draw()
+	{
+		ctx.clearRect(0, 0, W, H);	
+		for(var i = 0; i < mp; i++)
+		{ 
+			var p = particles[i];
+            ctx.beginPath();
+            ctx.fillStyle = p.color;
+			ctx.moveTo(p.x, p.y);
+			ctx.arc(p.x, p.y, p.r, 0, Math.PI*2, true);
+            ctx.fill();
+		}
+		update();
+	}
+	//Function to move the snowflakes
+	//angle will be an ongoing incremental flag. Sin and Cos functions will be applied to it to create vertical and horizontal movements of the flakes
+	var angle = 0;
+	function update()
+	{
+		angle += 0.01;
+		for(var i = 0; i < mp; i++)
+		{
+			var p = particles[i];
+			//Updating X and Y coordinates
+			//We will add 1 to the cos function to prevent negative values which will lead flakes to move upwards
+			//Every particle has its own density which can be used to make the downward movement different for each flake
+			//Lets make it more random by adding in the radius
+			p.y += Math.cos(angle+p.d) + 1 + p.r/2;
+			p.x += Math.sin(angle) * 2;
+			
+			//Sending flakes back from the top when it exits
+			//Lets make it a bit more organic and let flakes enter from the left and right also.
+			if(p.x > W+5 || p.x < -5 || p.y > H)
+			{
+				if(i%3 > 0) //66.67% of the flakes
+				{
+                    particles[i] = {x: Math.random()*W, y: -10, r: p.r, d: p.d, color : p.color};
+				}
+				else
+				{
+					//If the flake is exitting from the right
+					if(Math.sin(angle) > 0)
+					{
+						//Enter from the left
+                        particles[i] = {x: -5, y: Math.random()*H, r: p.r, d: p.d, color: p.color};
+					}
+					else
+					{
+						//Enter from the right
+                        particles[i] = {x: W+5, y: Math.random()*H, r: p.r, d: p.d, color : p.color};
+					}
+				}
+			}
+		}
+	}	
+	//animation loop
+	setInterval(draw, 33);
+}
+    </script>    
+        
 </html>
