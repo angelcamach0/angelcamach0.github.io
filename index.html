@@ -1,57 +1,52 @@
 <!DOCTYPE html>
 <html>
     <head>
+        
         <!--Stuff for chat box-->
         <title>The Ark Projects</title>
         <link type="text/css" rel="stylesheet" href="style.css" />
 
         <!--Stuff I fogot what it was for-->
-        <script type = "text/javascript" src = "test.js" ></script>
-        <script type = "text/javascript">
-               function sayHello() {
-                  alert("Hello World")
-               }
-         </script>
-        
-        
+        <script type = "text/javascript" src = "JavaScript/test.js" ></script>
+       
+
         <Style>body{background-color: hsla(202, 82%, 78%, 0.644);}</Style>
         <h1> The Ark Projects. </h1>
+
+        <!--- Vertical line --->
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            .vl {
+                border-left: 6px dashed rgb(0, 92, 69);
+                height: 1170px;
+                position: absolute;
+                left: 5%;
+                margin-left: -3px;
+                top: 0;
+            }
+        </style>
+
     </head>
     <body> 
+       
+
+        <div class="vl"></div>
+
+
         <p> Hello World this is a website where I will be learning to code html not only that but to learn more about web developing. <br>
             I want to start this website from scratch and make it something amazing. Something I created by my self with no templates no anything. <br>
-            I know i misspell a lot of words but this is not a blog this is some where where I will come and make mistakes to learn. <br> 
-        </p>
+            I know i misspell a lot of words but this is not a blog this is some where where I will come and make mistakes to learn. <br> </p>
+        
         <button onclick="window.location.href = 'https://www.duckduckgo.com';"> Duck .. Duck .. Go!! </button>
         <p> This is just a line of text that will seperate my test from the rest. </p>
-        <p>
-        <button onclick="window.location.href = JavaSript/test.js"> Activate me! </button>
-        </p>
-        <img src="http://i.stack.imgur.com/SBv4T.gif" alt="this slowpoke moves"  width=250/>
         
-        <!--
-        <p>
-        <button onclick="<img src="http://i.stack.imgur.com/SBv4T.gif" alt="this slowpoke moves"  width=250/>">
-        </p>
-        -->
+        <p><button onclick="window.location.href = JavaSript/test.js"> Activate me! </button></p>
+        
+        <img src="http://i.stack.imgur.com/SBv4T.gif" alt="this slowpoke moves"  width=250/>
 
+        
+        <p><input type = "button" onclick = "sayHello()" value = "Say Hello" /></p>
 
-        <!--
-        <p>
-        <div  style="display:none;" class="answer_list" > WELCOME</div>
-        <input type="button" name="answer" >
-        </p>
-        -->
-        <p>
-        <input type = "button" onclick = "sayHello()" value = "Say Hello" />
-        </p>
-        <p>
-            This is a test:
-            ```<Ri:a>
-                This is a test
-            </Ri:a>
-            ```
-        </p>
         <p>
         These are some of my favorite songs of 2020. (I Know they are not from 2020 but this year these are my favorite songs)
         </p>
@@ -89,5 +84,6 @@ $(document).ready(function(){
 
 
     </body>
-    <!--<script> src="JavaScript/test.js"</script> -->
+    <script> src="JavaScript/test.js"</script>
+    
 </html>
