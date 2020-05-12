@@ -11,13 +11,14 @@
 
         <Style>body{background-color: hsla(202, 82%, 78%, 0.644);}</Style>
         <h1> The Ark Projects. </h1>
+        <a href="quora.html">Go to quora question information thing.</a>
 
         <!--- Vertical line --->
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
             .vl {
                 border-left: 6px dashed rgb(0, 92, 69);
-                height: 1170px;
+                height: 2170px;
                 position: absolute;
                 left: 5%;
                 margin-left: -3px;
@@ -34,7 +35,7 @@
 
         <p> Hello World this is a website where I will be learning to code html not only that but to learn more about web developing. <br>
             I want to start this website from scratch and make it something amazing. Something I created by my self with no templates no anything. <br>
-            I know i misspell a lot of words but this is not a blog this is some where where I will come and make mistakes to learn. <br> </p>
+            I know I misspell a lot of words but this is not a blog this is some where where I will come and make mistakes to learn. <br> </p>
         
 
         <button onclick="window.location.href = 'https://www.duckduckgo.com';"> Duck .. Duck .. Go!! </button>
@@ -79,6 +80,7 @@
         </form>
         </div>
         
+        <p>Warning this is unstable confetti.</p>
         <!--CONFETI STATRST HERE!-->
         <canvas id="canvas"></canvas>
 
@@ -101,6 +103,7 @@
     <!--confetti script-->
     <script>
         window.onload = function confetti(){
+            
 	//canvas init
 	var canvas = document.getElementById("canvas");
 	var ctx = canvas.getContext("2d");
@@ -110,7 +113,7 @@
 	canvas.width = W;
 	canvas.height = H;
 	//snowflake particles
-	var mp = 25; //max particles
+	var mp = 100; //max particles
 	var particles = [];
 	for(var i = 0; i < mp; i++)
 	{
@@ -150,8 +153,9 @@
 			//We will add 1 to the cos function to prevent negative values which will lead flakes to move upwards
 			//Every particle has its own density which can be used to make the downward movement different for each flake
 			//Lets make it more random by adding in the radius
-			p.y += Math.cos(angle+p.d) + 1 + p.r/2;
-			p.x += Math.sin(angle) * 2;
+			const now = new Date;
+            p.y += Math.cos(angle+p.d) + (Math.random()*now.getTime()/1000000000000) + p.r/2;
+			p.x += Math.sin(angle) * (Math.random()*now.getTime()/1000000000000);
 			
 			//Sending flakes back from the top when it exits
 			//Lets make it a bit more organic and let flakes enter from the left and right also.
@@ -179,7 +183,7 @@
 		}
 	}	
 	//animation loop
-	setInterval(draw, 33);
+	setInterval(draw, 10);
 }
     </script>    
         
