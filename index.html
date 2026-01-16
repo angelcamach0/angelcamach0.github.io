@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; img-src 'self' data: https://www.artworkarchive.com; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-src https://www.artworkarchive.com; connect-src 'self'; upgrade-insecure-requests" />
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; upgrade-insecure-requests" />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
         <meta name="description" content="" />
         <meta name="author" content="" />
@@ -278,7 +278,14 @@
                         </div>
                     </div>
                 </div>
-                <iframe height="900" width="100%" src="https://www.artworkarchive.com/profile/angel-camacho/embed?&collection_filter=81390" title="Profile embedded." loading="lazy" referrerpolicy="no-referrer"></iframe>
+                <div class="text-center mt-4">
+                    <p class="large text-muted">
+                        External embed removed because the provider blocks iframe loading. Open the portfolio in a new tab instead.
+                    </p>
+                    <a class="btn btn-outline-primary btn-xl text-uppercase" href="https://www.artworkarchive.com/profile/angel-camacho?&collection_filter=81390" target="_blank" rel="noopener noreferrer">
+                        View Portfolio
+                    </a>
+                </div>
                 <div class="row">
                     <div class="col-lg-8 mx-auto text-center"><p class="large text-muted">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aut eaque, laboriosam veritatis, quos non quis ad perspiciatis, totam corporis ea, alias ut unde.</p>
                     

@@ -1,2 +1,11 @@
-<!-- # angelcamach0.github.io -->
 The Ark Projects
+
+This is a website I created around 2020 to show that I would be a good candidate for a web development job at the time.
+It was built to showcase projects I was working on. I now maintain a professional portfolio at:
+https://www.angel-camacho.com
+
+Site details
+- Static HTML/CSS/JS site based on the Start Bootstrap Agency template.
+- Uses Bootstrap 4 and jQuery for layout and interactions.
+- Images and assets live under `assets/`, with custom styling in `css/styles.css` and behavior in `js/scripts.js`.
+- Contact form is disabled in this repo for safety on static hosting.
