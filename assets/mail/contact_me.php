@@ -1,4 +1,8 @@
 <?php
+http_response_code(410);
+echo "Contact form disabled.";
+exit;
+
 // Check for empty fields
 if(empty($_POST['name'])      ||
    empty($_POST['email'])     ||
