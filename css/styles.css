@@ -236,21 +236,23 @@ body::-webkit-scrollbar {
 
 .terminal-line,
 .terminal-entry {
-  display: flex;
-  align-items: baseline;
-  gap: 0.35rem;
+  display: block;
   min-height: 1.55em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .terminal-prompt {
-  flex: 0 0 auto;
+  display: inline;
   color: #efe2c6;
+  margin-right: 0.35rem;
 }
 
 .terminal-command,
 .terminal-input {
-  min-width: 0;
-  white-space: pre-wrap;
+  display: inline;
+  white-space: inherit;
+  overflow-wrap: inherit;
   word-break: break-word;
 }
 
@@ -258,12 +260,12 @@ body::-webkit-scrollbar {
   min-height: 1.55em;
   color: #d7c7a4;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
   word-break: break-word;
 }
 
 .terminal-input {
-  display: inline-block;
-  min-height: 1.2em;
+  min-height: 0;
 }
 
 .terminal-cursor {
