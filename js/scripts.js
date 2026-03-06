@@ -912,6 +912,13 @@
             activeTerminalShell = shell;
             focusTerminal(instance.view || activeView);
         });
+        capture.addEventListener("pointerdown", () => {
+            activeTerminalShell = shell;
+            focusTerminal(instance.view || activeView);
+        });
+        capture.addEventListener("focus", () => {
+            activeTerminalShell = shell;
+        });
         shell.addEventListener("paste", (event) => {
             if (!isTerminalInputActive()) return;
             const pasted = event.clipboardData?.getData("text");
@@ -1337,6 +1344,10 @@
             instance.input.textContent = terminalBuffer;
             if (instance.capture && instance.capture.value !== terminalBuffer) {
                 instance.capture.value = terminalBuffer;
+            }
+            if (instance.capture && document.activeElement === instance.capture && typeof instance.capture.setSelectionRange === "function") {
+                const end = instance.capture.value.length;
+                instance.capture.setSelectionRange(end, end);
             }
         });
 
@@ -2520,21 +2531,34 @@
         showCursorInvert(event.clientX, event.clientY);
     });
     document.addEventListener("pointermove", (event) => {
-        if (!event.pointerType || event.pointerType === "mouse" || event.pressure > 0 || event.buttons > 0) {
-            showCursorInvert(event.clientX, event.clientY);
-        }
+        showCursorInvert(event.clientX, event.clientY);
         moveDraggedLetter(event);
     });
     document.addEventListener("pointerup", (event) => {
         endLetterDrag(event);
         if (event.pointerType && event.pointerType !== "mouse") {
-            hideCursorInvert(180);
+            hideCursorInvert(280);
         }
     });
     document.addEventListener("pointercancel", (event) => {
         endLetterDrag(event);
         hideCursorInvert();
     });
+    document.addEventListener("touchstart", (event) => {
+        const touch = event.touches[0];
+        if (touch) {
+            showCursorInvert(touch.clientX, touch.clientY);
+        }
+    }, { passive: true });
+    document.addEventListener("touchmove", (event) => {
+        const touch = event.touches[0];
+        if (touch) {
+            showCursorInvert(touch.clientX, touch.clientY);
+        }
+    }, { passive: true });
+    document.addEventListener("touchend", () => {
+        hideCursorInvert(280);
+    }, { passive: true });
     document.addEventListener("pointerleave", hideCursorInvert);
     document.addEventListener("mouseout", (event) => {
         if (!event.relatedTarget) {

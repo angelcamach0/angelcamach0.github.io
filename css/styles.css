@@ -338,6 +338,8 @@ body::-webkit-scrollbar {
   background: transparent;
   color: transparent;
   caret-color: transparent;
+  font: inherit;
+  line-height: inherit;
 }
 
 .terminal-shell--sidebar {
@@ -962,6 +964,15 @@ body::-webkit-scrollbar {
   .terminal-shell--sidebar {
     min-height: 320px;
     max-height: none;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .terminal-capture {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
   }
 }
 
