@@ -3,6 +3,8 @@
     const homeView = document.getElementById("home-view");
     const terminalView = document.getElementById("terminal-view");
     const homeStage = document.getElementById("home-title");
+    const homeTitleLabel = document.getElementById("home-title-label");
+    const homeDescription = document.getElementById("home-description");
     const welcomeLetters = document.getElementById("welcome-letters");
     const titleBar = document.querySelector(".title-bar");
     const navLinks = Array.from(document.querySelectorAll(".title-bar__nav a"));
@@ -17,11 +19,15 @@
 
     const extraScrollScreens = 2;
     const terminalPrompt = "friend@thearkprojects:~$";
-    const welcomeWord = "Welcome";
+    let homeTitleText = homeStage?.getAttribute("aria-label") || "Welcome";
     const welcomeBodies = [];
     const gravity = 2200;
     const bounce = 0.48;
     const floorFriction = 0.985;
+    const homeEditableContent = {
+        tittle: homeTitleText,
+        description: homeDescription?.textContent?.trim() || "",
+    };
     let activeView = getActiveView();
     let hasRendered = false;
     let dragBody = null;
@@ -32,6 +38,7 @@
     let terminalBuffer = "";
     let terminalTranscript = [];
     let activeTerminalShell = null;
+    let currentDirectory = "~";
 
     function getActiveView() {
         const hash = window.location.hash.toLowerCase();
@@ -173,6 +180,63 @@
         renderTerminal();
     }
 
+    function getDirectoryEntries() {
+        if (currentDirectory === "home") {
+            return [
+                "tittle",
+                "description",
+            ];
+        }
+
+        if (currentDirectory === "~") {
+            return [
+                "home/",
+                "grid/",
+                "terminal/",
+            ];
+        }
+
+        return [];
+    }
+
+    function parseEchoAssignment(rawCommand) {
+        const match = rawCommand.match(/^echo\s+([a-zA-Z][\w-]*)\s*>\s*(?:"([^\"]*)"|'([^']*)'|(.*))$/);
+        if (!match) return null;
+
+        const value = match[2] ?? match[3] ?? (match[4] || "").trim();
+        return {
+            target: match[1].toLowerCase(),
+            value,
+        };
+    }
+
+    function updateHomeContent(target, value) {
+        const normalizedTarget = target === "title" ? "tittle" : target;
+
+        if (normalizedTarget === "tittle") {
+            homeEditableContent.tittle = value || " ";
+            homeTitleText = homeEditableContent.tittle;
+            if (homeStage) {
+                homeStage.setAttribute("aria-label", homeEditableContent.tittle.trim() || " ");
+            }
+            if (homeTitleLabel) {
+                homeTitleLabel.textContent = homeEditableContent.tittle;
+            }
+            buildWelcomeLetters();
+            return true;
+        }
+
+        if (normalizedTarget === "description") {
+            homeEditableContent.description = value;
+            if (homeDescription) {
+                homeDescription.textContent = value;
+            }
+            return true;
+        }
+
+        return false;
+    }
+
     function isTerminalInputActive() {
         return Boolean(
             activeTerminalShell &&
@@ -198,6 +262,7 @@
                     "clear",
                     "ls",
                     "cd",
+                    "echo",
                     "help",
                 ].join("\n"));
                 break;
@@ -205,31 +270,49 @@
                 clearTerminalHistory();
                 break;
             case "ls":
-                appendTerminalOutput([
-                    "home/",
-                    "grid/",
-                    "terminal/",
-                ].join("\n"));
+                appendTerminalOutput(getDirectoryEntries().join("\n") || "empty");
                 break;
             case "cd": {
                 const target = (args[0] || "").toLowerCase();
                 if (!target) {
-                    appendTerminalOutput("usage: cd [home|grid|terminal]");
+                    appendTerminalOutput("usage: cd [home|grid|terminal|..|~]");
+                    break;
+                }
+                if (target === ".." || target === "~") {
+                    currentDirectory = "~";
                     break;
                 }
                 if (target === "home" || target === "~") {
+                    currentDirectory = "home";
                     window.location.hash = "#home";
                     break;
                 }
                 if (target === "grid") {
+                    currentDirectory = "grid";
                     window.location.hash = "#grid";
                     break;
                 }
                 if (target === "terminal") {
+                    currentDirectory = "terminal";
                     window.location.hash = "#terminal";
                     break;
                 }
                 appendTerminalOutput(`cd: no such location: ${args[0]}`);
+                break;
+            }
+            case "echo": {
+                const assignment = parseEchoAssignment(trimmed);
+                if (!assignment) {
+                    appendTerminalOutput('usage: echo [field] > "value"');
+                    break;
+                }
+                if (currentDirectory !== "home") {
+                    appendTerminalOutput("echo: no editable fields in this directory");
+                    break;
+                }
+                if (!updateHomeContent(assignment.target, assignment.value)) {
+                    appendTerminalOutput(`echo: unknown field: ${assignment.target}`);
+                }
                 break;
             }
             default:
@@ -479,7 +562,7 @@
         welcomeLetters.textContent = "";
         welcomeBodies.length = 0;
 
-        Array.from(welcomeWord).forEach((character) => {
+        Array.from(homeTitleText).forEach((character) => {
             const body = {
                 el: document.createElement("span"),
                 x: 0,
@@ -499,7 +582,7 @@
             };
 
             body.el.className = "welcome-letter";
-            body.el.textContent = character;
+            body.el.textContent = character === " " ? "\u00A0" : character;
             body.el.setAttribute("aria-hidden", "true");
             body.el.addEventListener("pointerdown", (event) => startLetterDrag(event, body));
 
