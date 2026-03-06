@@ -7,6 +7,8 @@
     if (!grid) return;
 
     const extraScrollScreens = 2;
+    let activeView = getActiveView();
+    let hasRendered = false;
 
     function getActiveView() {
         return window.location.hash === "#grid" ? "grid" : "home";
@@ -19,19 +21,33 @@
     }
 
     function renderView() {
-        const activeView = getActiveView();
-        const showGrid = activeView === "grid";
+        const nextView = getActiveView();
+        const showGrid = nextView === "grid";
+        const enteringView = showGrid ? grid : homeView;
+        const entranceClass = showGrid ? "is-entering-from-right" : "is-entering-from-left";
 
         grid.hidden = !showGrid;
         if (homeView) {
             homeView.hidden = showGrid;
         }
 
-        updateNavigation(activeView);
+        updateNavigation(nextView);
 
         if (showGrid) {
             requestSync();
         }
+
+        if (hasRendered && nextView !== activeView && enteringView) {
+            enteringView.classList.remove("is-entering-from-right", "is-entering-from-left");
+            void enteringView.offsetWidth;
+            enteringView.classList.add(entranceClass);
+            enteringView.addEventListener("animationend", () => {
+                enteringView.classList.remove(entranceClass);
+            }, { once: true });
+        }
+
+        activeView = nextView;
+        hasRendered = true;
     }
 
     function showCursorInvert(clientX, clientY) {
