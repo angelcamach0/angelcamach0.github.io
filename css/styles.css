@@ -18,11 +18,16 @@ body {
   min-height: 100%;
   margin: 0;
   overflow-x: hidden;
+  scrollbar-width: none;
 }
 
 body {
   min-height: 100vh;
   background: var(--background);
+}
+
+body::-webkit-scrollbar {
+  display: none;
 }
 
 #bubble-grid {
