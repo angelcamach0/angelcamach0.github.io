@@ -63,11 +63,11 @@ body::after {
 }
 
 .page-view.is-entering-from-right {
-  animation: slide-in-from-right 900ms cubic-bezier(0.16, 0.84, 0.24, 1) both;
+  animation: slide-in-from-right 1600ms cubic-bezier(0.16, 0.84, 0.24, 1) both;
 }
 
 .page-view.is-entering-from-left {
-  animation: slide-in-from-left 900ms cubic-bezier(0.16, 0.84, 0.24, 1) both;
+  animation: slide-in-from-left 1600ms cubic-bezier(0.16, 0.84, 0.24, 1) both;
 }
 
 @keyframes slide-in-from-right {
