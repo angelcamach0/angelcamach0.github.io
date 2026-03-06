@@ -62,6 +62,17 @@
         return Boolean(instance && instance.shell && !instance.shell.closest("[hidden]"));
     }
 
+    function normalizeTerminalLine(shell) {
+        const line = shell.querySelector(".terminal-line");
+        if (!line) return;
+
+        Array.from(line.childNodes).forEach((node) => {
+            if (node.nodeType === Node.TEXT_NODE && !node.textContent.trim()) {
+                node.remove();
+            }
+        });
+    }
+
     function registerTerminalInstance(shell) {
         if (!shell) return null;
 
@@ -69,6 +80,8 @@
         if (existing) {
             return existing;
         }
+
+        normalizeTerminalLine(shell);
 
         const instance = {
             shell,
