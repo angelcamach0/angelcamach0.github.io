@@ -25,6 +25,7 @@ body {
 body {
   min-height: 100vh;
   background: var(--background);
+  transition: filter 180ms ease;
 }
 
 .page-views {
@@ -87,6 +88,12 @@ body.is-resizing {
 
 body::-webkit-scrollbar {
   display: none;
+}
+
+@media (hover: hover) {
+  body:hover {
+    filter: invert(1);
+  }
 }
 
 #bubble-grid {
