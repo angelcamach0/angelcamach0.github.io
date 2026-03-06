@@ -160,12 +160,12 @@ body::after {
 }
 
 .title-bar__brand {
-  font-size: 1.45rem;
+  font-size: 1.22rem;
   flex: 0 0 auto;
   white-space: nowrap;
-  font-family: "Great Vibes", cursive;
-  font-weight: 400;
-  letter-spacing: 0;
+  font-family: "Lobster Two", cursive;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   text-transform: none;
   color: #f6edd4;
   text-shadow:
