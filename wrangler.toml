@@ -1,0 +1,8 @@
+name = "ark-catalog-api"
+main = "worker/src/index.js"
+compatibility_date = "2026-03-06"
+workers_dev = true
+
+[[r2_buckets]]
+binding = "CONTENT_BUCKET"
+bucket_name = "thearkprojects-content"

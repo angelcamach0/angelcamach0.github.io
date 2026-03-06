@@ -17,3 +17,9 @@ Run locally
    - `python3 -m http.server 4269`
 3) Open in your browser:
    - `http://localhost:4269`
+
+Cloudflare content layer
+- R2 is the planned primary file store for published content.
+- A small Worker exposes the bucket as a tile catalog for the frontend.
+- The frontend merges the remote catalog with `data/tiles.json`, with remote entries taking precedence on matching ids.
+- Upload conventions and metadata are documented in `docs/r2-content-workflow.md`.

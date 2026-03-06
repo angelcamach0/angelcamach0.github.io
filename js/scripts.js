@@ -11,6 +11,7 @@
     const titleBar = document.querySelector(".title-bar");
     const titleBarNav = document.querySelector(".title-bar__nav");
     const pageViews = document.querySelector(".page-views");
+    const catalogEndpointMeta = document.querySelector('meta[name="ark-catalog-endpoint"]');
     const terminalInstances = [];
     const pageNodes = new Map();
     const root = document.documentElement;
@@ -26,7 +27,8 @@
         timeZone: "America/Chicago",
     });
     const texasWeatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=30.2672&longitude=-97.7431&current=temperature_2m&temperature_unit=fahrenheit";
-    const tileCatalogUrl = "data/tiles.json";
+    const tileCatalogFallbackUrl = "data/tiles.json";
+    const tileCatalogRemoteUrl = catalogEndpointMeta?.content?.trim() || "";
     const tileTypeAliases = new Map([
         ["code", "code"],
         ["codes", "code"],
@@ -69,6 +71,7 @@
     const cmatrixFallbackSource = "friend@thearkprojects:~$lshome/grid/terminal/";
     let tileCatalog = [];
     let tileCatalogLoaded = false;
+    let tileCatalogSource = "local";
     let tileFilter = {
         mode: "all",
         value: "all",
@@ -260,7 +263,12 @@
         }
 
         if (tileCatalog.length === 0) {
-            return [createCatalogStateTile("Catalog empty", "Add entries to data/tiles.json to populate the grid.")];
+            return [
+                createCatalogStateTile(
+                    "Catalog empty",
+                    "Upload content to the R2 bucket or keep using the local fallback catalog."
+                ),
+            ];
         }
 
         return [
@@ -353,28 +361,79 @@
         };
     }
 
+    async function loadCatalogSource(sourceUrl) {
+        const response = await fetch(sourceUrl, {
+            headers: {
+                accept: "application/json",
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`tile catalog request failed: ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const records = Array.isArray(payload) ? payload : Array.isArray(payload?.items) ? payload.items : [];
+
+        return records.map((tile, index) => normalizeTileRecord(tile, index));
+    }
+
     async function loadTileCatalog() {
-        try {
-            const response = await fetch(tileCatalogUrl, {
-                headers: {
-                    accept: "application/json",
-                },
-            });
+        const mergedCatalog = new Map();
+        let loadedRemote = false;
+        let loadedLocal = false;
+        let lastError = null;
 
-            if (!response.ok) {
-                throw new Error(`tile catalog request failed: ${response.status}`);
+        if (tileCatalogFallbackUrl) {
+            try {
+                const localRecords = await loadCatalogSource(tileCatalogFallbackUrl);
+                localRecords.forEach((tile) => {
+                    mergedCatalog.set(tile.id, tile);
+                });
+                loadedLocal = true;
+            } catch (error) {
+                lastError = error;
             }
+        }
 
-            const payload = await response.json();
-            tileCatalog = Array.isArray(payload)
-                ? payload.map((tile, index) => normalizeTileRecord(tile, index)).sort(compareTiles)
-                : [];
-        } catch (error) {
-            console.error("Failed to load tile catalog", error);
-            tileCatalog = [];
-        } finally {
-            tileCatalogLoaded = true;
-            requestSync();
+        if (tileCatalogRemoteUrl) {
+            try {
+                const remoteRecords = await loadCatalogSource(tileCatalogRemoteUrl);
+                remoteRecords.forEach((tile) => {
+                    mergedCatalog.set(tile.id, tile);
+                });
+                loadedRemote = true;
+            } catch (error) {
+                lastError = error;
+            }
+        }
+
+        if (lastError && !loadedRemote && !loadedLocal) {
+            console.error("Failed to load tile catalog", lastError);
+        }
+
+        tileCatalog = Array.from(mergedCatalog.values()).sort(compareTiles);
+        tileCatalogSource = loadedRemote && loadedLocal
+            ? "merged"
+            : loadedRemote
+                ? "remote"
+                : loadedLocal
+                    ? "local"
+                    : "none";
+        tileCatalogLoaded = true;
+        requestSync();
+    }
+
+    function getCatalogSourceLabel() {
+        switch (tileCatalogSource) {
+            case "merged":
+                return "remote+local";
+            case "remote":
+                return "remote";
+            case "local":
+                return "local";
+            default:
+                return "unavailable";
         }
     }
 
@@ -533,6 +592,7 @@
             lines.push(`    components: ${components.join(", ")}`);
             if (page?.kind === "grid") {
                 lines.push(`    filter: ${describeTileFilter()}`);
+                lines.push(`    source: ${getCatalogSourceLabel()}`);
                 lines.push(`    catalog: ${tileCatalog.length} items`);
                 lines.push(`    types: ${getKnownTileTypes().join(", ")}`);
             }
@@ -1038,6 +1098,7 @@
         if (currentDirectory === "grid") {
             return [
                 "terminal@00-0A",
+                `source:${getCatalogSourceLabel()}`,
                 `filter:${describeTileFilter()}`,
                 ...getKnownTileTypes().map((type) => `${type}/`),
             ];

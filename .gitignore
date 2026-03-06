@@ -18,3 +18,4 @@ dist/
 build/
 coverage/
 .sass-cache/
+.wrangler/
