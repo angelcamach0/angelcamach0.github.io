@@ -210,6 +210,20 @@ body::-webkit-scrollbar {
   border-radius: 32px;
 }
 
+.terminal-shell--bubble {
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  height: 100%;
+  max-height: none;
+  padding: 40px 14px 28px;
+  border: 0;
+  border-radius: inherit;
+  box-shadow: none;
+  background: transparent;
+  font-size: clamp(0.74rem, 0.9vw, 0.92rem);
+}
+
 .terminal-history {
   display: flex;
   flex-direction: column;
@@ -358,6 +372,18 @@ body::-webkit-scrollbar {
 .bubble.is-resizing {
   transition: none;
   transform: none;
+}
+
+.bubble--terminal {
+  overflow: hidden;
+}
+
+.bubble--terminal:hover {
+  transform: none;
+}
+
+.bubble--terminal .bubble__label {
+  z-index: 3;
 }
 
 .bubble__label {

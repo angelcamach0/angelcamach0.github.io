@@ -8,12 +8,7 @@
     const welcomeLetters = document.getElementById("welcome-letters");
     const titleBar = document.querySelector(".title-bar");
     const navLinks = Array.from(document.querySelectorAll(".title-bar__nav a"));
-    const terminalInstances = Array.from(document.querySelectorAll("[data-terminal-shell]")).map((shell) => ({
-        shell,
-        history: shell.querySelector("[data-terminal-history]"),
-        input: shell.querySelector("[data-terminal-input]"),
-        view: shell.dataset.terminalView || "",
-    }));
+    const terminalInstances = [];
     const root = document.documentElement;
     if (!grid) return;
 
@@ -67,6 +62,38 @@
         return Boolean(instance && instance.shell && !instance.shell.closest("[hidden]"));
     }
 
+    function registerTerminalInstance(shell) {
+        if (!shell) return null;
+
+        const existing = terminalInstances.find((instance) => instance.shell === shell);
+        if (existing) {
+            return existing;
+        }
+
+        const instance = {
+            shell,
+            history: shell.querySelector("[data-terminal-history]"),
+            input: shell.querySelector("[data-terminal-input]"),
+            view: shell.dataset.terminalView || "",
+        };
+
+        shell.addEventListener("pointerdown", () => {
+            activeTerminalShell = shell;
+            focusTerminal(instance.view || activeView);
+        });
+        shell.addEventListener("paste", (event) => {
+            if (!isTerminalInputActive()) return;
+            const pasted = event.clipboardData?.getData("text");
+            if (!pasted) return;
+            event.preventDefault();
+            terminalBuffer += pasted.replace(/\r/g, "");
+            renderTerminal();
+        });
+
+        terminalInstances.push(instance);
+        return instance;
+    }
+
     function renderView() {
         const nextView = getActiveView();
         const enteringView = getEnteringView(nextView);
@@ -84,6 +111,7 @@
 
         if (nextView === "grid") {
             requestSync();
+            requestAnimationFrame(() => requestAnimationFrame(() => focusTerminal("grid")));
         } else if (nextView === "home") {
             requestAnimationFrame(resetLetterLayout);
             requestAnimationFrame(() => focusTerminal("home"));
@@ -447,6 +475,70 @@
         });
     }
 
+    function createGridTerminalShell() {
+        const shell = document.createElement("div");
+        const title = document.createElement("h2");
+        const history = document.createElement("div");
+        const line = document.createElement("div");
+        const prompt = document.createElement("span");
+        const input = document.createElement("span");
+        const cursor = document.createElement("span");
+
+        shell.className = "terminal-shell terminal-shell--bubble";
+        shell.dataset.terminalShell = "";
+        shell.dataset.terminalView = "grid";
+        shell.tabIndex = 0;
+        shell.setAttribute("role", "textbox");
+        shell.setAttribute("aria-multiline", "true");
+        shell.setAttribute("aria-labelledby", "grid-terminal-title");
+
+        title.id = "grid-terminal-title";
+        title.className = "sr-only";
+        title.textContent = "Grid terminal";
+
+        history.className = "terminal-history";
+        history.dataset.terminalHistory = "";
+        history.setAttribute("aria-live", "polite");
+
+        line.className = "terminal-line";
+
+        prompt.className = "terminal-prompt";
+        prompt.textContent = terminalPrompt;
+
+        input.className = "terminal-input";
+        input.dataset.terminalInput = "";
+
+        cursor.className = "terminal-cursor";
+        cursor.setAttribute("aria-hidden", "true");
+
+        line.appendChild(prompt);
+        line.appendChild(input);
+        line.appendChild(cursor);
+
+        shell.appendChild(title);
+        shell.appendChild(history);
+        shell.appendChild(line);
+
+        registerTerminalInstance(shell);
+
+        return shell;
+    }
+
+    function ensureGridTerminalBubble() {
+        const bubble = grid.firstElementChild;
+        if (!(bubble instanceof HTMLElement)) return;
+
+        bubble.classList.add("bubble--terminal");
+
+        let shell = bubble.querySelector("[data-terminal-shell]");
+        if (!shell) {
+            shell = createGridTerminalShell();
+            bubble.appendChild(shell);
+        } else {
+            registerTerminalInstance(shell);
+        }
+    }
+
     function createBubble(cols) {
         const bubble = document.createElement("article");
         const label = document.createElement("span");
@@ -498,12 +590,20 @@
             grid.removeChild(grid.children[index]);
         }
 
+        ensureGridTerminalBubble();
+
         Array.from(grid.children).forEach((bubble, index) => {
             const label = bubble.querySelector(".bubble__label");
             if (label) {
                 label.textContent = getBubbleTitle(index);
             }
         });
+
+        renderTerminal();
+
+        if (activeView === "grid" && (!activeTerminalShell || activeTerminalShell.closest("[hidden]"))) {
+            requestAnimationFrame(() => focusTerminal("grid"));
+        }
     }
 
     function requestSync() {
@@ -739,6 +839,9 @@
         physicsFrame = window.requestAnimationFrame(physicsTick);
     }
 
+    document.querySelectorAll("[data-terminal-shell]").forEach((shell) => {
+        registerTerminalInstance(shell);
+    });
     renderView();
     renderTerminal();
     buildWelcomeLetters();
@@ -762,19 +865,5 @@
         if (!event.relatedTarget) {
             hideCursorInvert();
         }
-    });
-    terminalInstances.forEach((instance) => {
-        instance.shell.addEventListener("pointerdown", () => {
-            activeTerminalShell = instance.shell;
-            focusTerminal(instance.view || activeView);
-        });
-        instance.shell.addEventListener("paste", (event) => {
-            if (!isTerminalInputActive()) return;
-            const pasted = event.clipboardData?.getData("text");
-            if (!pasted) return;
-            event.preventDefault();
-            terminalBuffer += pasted.replace(/\r/g, "");
-            renderTerminal();
-        });
     });
 })();
