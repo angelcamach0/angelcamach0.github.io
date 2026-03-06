@@ -38,20 +38,10 @@
         }
     }
 
-    function getAlphabetLabel(index) {
-        let value = index;
-        let label = "";
-
-        do {
-            label = String.fromCharCode(65 + (value % 26)) + label;
-            value = Math.floor(value / 26) - 1;
-        } while (value >= 0);
-
-        return label;
-    }
-
     function getBubbleTitle(index) {
-        return `00-0${getAlphabetLabel(index)}`;
+        const cycle = Math.floor(index / 26);
+        const letter = String.fromCharCode(65 + (index % 26));
+        return `${String(cycle).padStart(2, "0")}-0${letter}`;
     }
 
     function attachResize(bubble, handle) {
@@ -106,7 +96,7 @@
         bubble.dataset.rowSpan = "1";
 
         label.className = "bubble__label";
-        label.textContent = "A";
+        label.textContent = "00-0A";
         label.setAttribute("aria-hidden", "true");
 
         handle.className = "bubble__handle";
