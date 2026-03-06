@@ -361,38 +361,62 @@
         instance.matrixContext = canvas.getContext("2d");
         instance.matrixColumns = [];
         instance.matrixFontSize = 16;
+        instance.matrixRowHeight = 24;
+        instance.matrixColumnWidth = 10;
+        instance.matrixFontFamily = '"Courier New", "Lucida Console", monospace';
+        instance.matrixFontWeight = "400";
         instance.matrixWidth = 0;
         instance.matrixHeight = 0;
         instance.matrixDpr = 1;
         instance.matrixSource = cmatrixFallbackSource;
     }
 
-    function buildCmatrixSource() {
-        const fragments = [];
+    function buildCmatrixSource(instance) {
+        if (!instance) return cmatrixFallbackSource;
 
-        terminalTranscript.forEach((entry) => {
-            if (entry.type === "command") {
-                fragments.push(`${terminalPrompt}${entry.text}`);
-                return;
-            }
-
-            fragments.push(entry.text);
+        const lines = [];
+        instance.history?.querySelectorAll(".terminal-entry, .terminal-output").forEach((line) => {
+            lines.push((line.textContent || "").replace(/\u00A0/g, " "));
         });
 
-        fragments.push(`${terminalPrompt}${terminalBuffer}`);
+        const prompt = instance.shell.querySelector(".terminal-line .terminal-prompt")?.textContent || terminalPrompt;
+        const input = instance.input?.textContent || "";
+        lines.push(`${prompt}${input}`);
 
-        const normalized = fragments
+        const normalized = lines
             .join(" ")
-            .replace(/\s+/g, "")
+            .replace(/\s+/g, " ")
             .trim();
 
         return normalized || cmatrixFallbackSource;
     }
 
+    function getCmatrixFont(instance) {
+        return `${instance.matrixFontWeight} ${instance.matrixFontSize}px ${instance.matrixFontFamily}`;
+    }
+
+    function syncCmatrixTypography(instance) {
+        if (!instance?.matrixContext) return;
+
+        const styles = window.getComputedStyle(instance.shell);
+        const fontSize = parseFloat(styles.fontSize) || 16;
+        const lineHeight = parseFloat(styles.lineHeight) || (fontSize * 1.55);
+        const fontFamily = styles.fontFamily || '"Courier New", "Lucida Console", monospace';
+        const fontWeight = styles.fontWeight || "400";
+
+        instance.matrixFontSize = fontSize;
+        instance.matrixRowHeight = lineHeight;
+        instance.matrixFontFamily = fontFamily;
+        instance.matrixFontWeight = fontWeight;
+        instance.matrixContext.font = getCmatrixFont(instance);
+        instance.matrixColumnWidth = Math.max(8, Math.ceil(instance.matrixContext.measureText("M").width));
+        instance.matrixContext.textBaseline = "top";
+    }
+
     function createCmatrixColumn(instance) {
         const height = instance.matrixHeight || instance.shell.clientHeight || 0;
-        const fontSize = instance.matrixFontSize || 16;
-        const rows = Math.max(1, Math.ceil(height / fontSize));
+        const rowHeight = instance.matrixRowHeight || instance.matrixFontSize || 16;
+        const rows = Math.max(1, Math.ceil(height / rowHeight));
         const sourceLength = Math.max(1, (instance.matrixSource || cmatrixFallbackSource).length);
 
         return {
@@ -407,8 +431,8 @@
         if (!instance) return;
 
         const width = instance.matrixWidth || instance.shell.clientWidth || 0;
-        const fontSize = instance.matrixFontSize || 16;
-        const columnCount = Math.max(1, Math.floor(width / fontSize));
+        const columnWidth = instance.matrixColumnWidth || instance.matrixFontSize || 16;
+        const columnCount = Math.max(1, Math.floor(width / columnWidth));
 
         instance.matrixColumns = Array.from({ length: columnCount }, () => createCmatrixColumn(instance));
     }
@@ -441,11 +465,23 @@
         instance.matrixCanvas.style.width = `${width}px`;
         instance.matrixCanvas.style.height = `${height}px`;
         instance.matrixContext.setTransform(dpr, 0, 0, dpr, 0, 0);
-        instance.matrixContext.textBaseline = "top";
-        instance.matrixContext.font = `${instance.matrixFontSize}px "Courier New", "Lucida Console", monospace`;
+        syncCmatrixTypography(instance);
 
         resetCmatrixColumns(instance);
         return true;
+    }
+
+    function getCmatrixChar(source, index) {
+        const sourceLength = Math.max(1, source.length);
+
+        for (let offset = 0; offset < sourceLength; offset += 1) {
+            const candidate = source.charAt((index + offset + sourceLength) % sourceLength);
+            if (candidate && !/\s/.test(candidate)) {
+                return candidate;
+            }
+        }
+
+        return source.charAt((index + sourceLength) % sourceLength) || " ";
     }
 
     function renderCmatrixFrame(deltaMs) {
@@ -458,18 +494,18 @@
             const ctx = instance.matrixContext;
             const width = instance.matrixWidth;
             const height = instance.matrixHeight;
-            const fontSize = instance.matrixFontSize;
-            const rowHeight = fontSize;
+            const rowHeight = instance.matrixRowHeight || instance.matrixFontSize;
+            const columnWidth = instance.matrixColumnWidth || instance.matrixFontSize;
             const maxRow = Math.ceil(height / rowHeight);
             const source = instance.matrixSource || cmatrixFallbackSource;
             const sourceLength = Math.max(1, source.length);
 
             ctx.fillStyle = "rgba(5, 5, 5, 0.22)";
             ctx.fillRect(0, 0, width, height);
-            ctx.font = `${fontSize}px "Courier New", "Lucida Console", monospace`;
+            ctx.font = getCmatrixFont(instance);
 
             instance.matrixColumns.forEach((column, index) => {
-                const x = index * fontSize;
+                const x = index * columnWidth;
                 const headRow = Math.floor(column.head);
                 const trailLength = column.length;
 
@@ -479,15 +515,15 @@
 
                     const y = row * rowHeight;
                     const charIndex = (column.offset + headRow + trailIndex + index) % sourceLength;
-                    const char = source.charAt((charIndex + sourceLength) % sourceLength);
+                    const char = getCmatrixChar(source, charIndex);
 
                     if (trailIndex === 0) {
-                        ctx.fillStyle = "#f5efdf";
+                        ctx.fillStyle = "#f3e7c2";
                     } else if (trailIndex < 3) {
-                        ctx.fillStyle = `rgba(192, 255, 188, ${0.95 - (trailIndex * 0.18)})`;
+                        ctx.fillStyle = `rgba(233, 219, 180, ${0.92 - (trailIndex * 0.18)})`;
                     } else {
                         const alpha = Math.max(0.08, 0.72 - ((trailIndex / trailLength) * 0.74));
-                        ctx.fillStyle = `rgba(84, 212, 102, ${alpha})`;
+                        ctx.fillStyle = `rgba(203, 184, 140, ${alpha})`;
                     }
 
                     ctx.fillText(char, x, y);
@@ -535,7 +571,7 @@
             ensureCmatrixLayer(instance);
             instance.shell.classList.add("is-cmatrix");
             instance.shell.scrollTop = 0;
-            instance.matrixSource = buildCmatrixSource();
+            instance.matrixSource = buildCmatrixSource(instance);
             resizeCmatrixLayer(instance);
             const ctx = instance.matrixContext;
             if (ctx && instance.matrixWidth && instance.matrixHeight) {

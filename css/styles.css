@@ -321,10 +321,10 @@ body::-webkit-scrollbar {
 .terminal-matrix__label {
   position: relative;
   z-index: 1;
-  color: rgba(239, 226, 198, 0.72);
+  color: rgba(243, 231, 194, 0.78);
   font-size: 0.74rem;
   letter-spacing: 0.08em;
-  text-shadow: 0 0 10px rgba(239, 226, 198, 0.15);
+  text-shadow: 0 0 10px rgba(243, 231, 194, 0.14);
 }
 
 .terminal-prompt {
