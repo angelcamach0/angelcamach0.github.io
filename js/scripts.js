@@ -8,32 +8,22 @@
     const welcomeLetters = document.getElementById("welcome-letters");
     const titleBar = document.querySelector(".title-bar");
     const navLinks = Array.from(document.querySelectorAll(".title-bar__nav a"));
+    const pageViews = document.querySelector(".page-views");
     const terminalInstances = [];
+    const pageNodes = new Map();
     const root = document.documentElement;
     if (!grid) return;
 
     const extraScrollScreens = 2;
     const terminalPrompt = "friend@thearkprojects:~$";
-    const viewChain = [
-        "home",
-        "grid",
-        "terminal",
-    ];
-    const viewNeighbors = {
-        home: { left: null, right: "grid" },
-        grid: { left: "home", right: "terminal" },
-        terminal: { left: "grid", right: null },
-    };
     let homeTitleText = homeStage?.getAttribute("aria-label") || "Welcome";
     const welcomeBodies = [];
     const gravity = 2200;
     const bounce = 0.48;
     const floorFriction = 0.985;
-    const homeEditableContent = {
-        tittle: homeTitleText,
-        description: homeDescription?.textContent?.trim() || "",
-    };
-    let activeView = getActiveView();
+    let pageHead = null;
+    let pageTail = null;
+    let activeView = "home";
     let hasRendered = false;
     let dragBody = null;
     let dragPointerId = null;
@@ -46,10 +36,108 @@
     let currentDirectory = "~";
 
     function getActiveView() {
-        const hash = window.location.hash.toLowerCase();
-        if (hash === "#grid") return "grid";
-        if (hash === "#terminal") return "terminal";
+        const hash = window.location.hash.toLowerCase().replace(/^#/, "");
+        if (pageNodes.has(hash)) return hash;
         return "home";
+    }
+
+    function createPageNode(name, element, options = {}) {
+        return {
+            name,
+            element,
+            prev: null,
+            next: null,
+            editable: Boolean(options.editable),
+            kind: options.kind || "static",
+            titleEl: options.titleEl || null,
+            titleLabelEl: options.titleLabelEl || null,
+            descriptionEl: options.descriptionEl || null,
+            titleText: options.titleText || "",
+            descriptionText: options.descriptionText || "",
+        };
+    }
+
+    function appendPageNode(node) {
+        if (!pageHead) {
+            pageHead = node.name;
+            pageTail = node.name;
+            pageNodes.set(node.name, node);
+            return node;
+        }
+
+        return insertPageNodeAfter(pageTail, node);
+    }
+
+    function insertPageNodeAfter(afterName, node) {
+        const afterNode = pageNodes.get(afterName);
+        if (!afterNode) {
+            pageNodes.set(node.name, node);
+            if (!pageHead) {
+                pageHead = node.name;
+                pageTail = node.name;
+            }
+            return node;
+        }
+
+        const nextName = afterNode.next;
+        node.prev = afterNode.name;
+        node.next = nextName;
+        afterNode.next = node.name;
+
+        if (nextName) {
+            const nextNode = pageNodes.get(nextName);
+            if (nextNode) {
+                nextNode.prev = node.name;
+            }
+        } else {
+            pageTail = node.name;
+        }
+
+        pageNodes.set(node.name, node);
+
+        if (afterNode.element && node.element) {
+            afterNode.element.insertAdjacentElement("afterend", node.element);
+        }
+
+        return node;
+    }
+
+    function getPageNode(name) {
+        return pageNodes.get(name) || null;
+    }
+
+    function getPageNamesInOrder() {
+        const names = [];
+        let cursor = pageHead;
+
+        while (cursor) {
+            names.push(cursor);
+            cursor = pageNodes.get(cursor)?.next || null;
+        }
+
+        return names;
+    }
+
+    function getPageIndex(name) {
+        return getPageNamesInOrder().indexOf(name);
+    }
+
+    function initializePageChain() {
+        appendPageNode(createPageNode("home", homeView, {
+            editable: true,
+            kind: "home",
+            titleEl: homeStage,
+            titleLabelEl: homeTitleLabel,
+            descriptionEl: homeDescription,
+            titleText: homeTitleText,
+            descriptionText: homeDescription?.textContent?.trim() || "",
+        }));
+        appendPageNode(createPageNode("grid", grid, {
+            kind: "grid",
+        }));
+        appendPageNode(createPageNode("terminal", terminalView, {
+            kind: "terminal",
+        }));
     }
 
     function updateNavigation(viewName) {
@@ -59,29 +147,12 @@
     }
 
     function getEnteringView(viewName) {
-        if (viewName === "grid") return grid;
-        if (viewName === "terminal") return terminalView;
-        return homeView;
-    }
-
-    function getViewOrder(viewName) {
-        const index = viewChain.indexOf(viewName);
-        return index === -1 ? 0 : index;
+        return getPageNode(viewName)?.element || homeView;
     }
 
     function getEntranceClass(currentView, nextView) {
-        const currentNeighbors = viewNeighbors[currentView] || viewNeighbors.home;
-
-        if (currentNeighbors.right === nextView) {
-            return "is-entering-from-right";
-        }
-
-        if (currentNeighbors.left === nextView) {
-            return "is-entering-from-left";
-        }
-
-        const currentOrder = getViewOrder(currentView);
-        const nextOrder = getViewOrder(nextView);
+        const currentOrder = getPageIndex(currentView);
+        const nextOrder = getPageIndex(nextView);
         return nextOrder > currentOrder ? "is-entering-from-right" : "is-entering-from-left";
     }
 
@@ -143,24 +214,22 @@
         const enteringView = getEnteringView(nextView);
         const entranceClass = getEntranceClass(activeView, nextView);
 
-        grid.hidden = nextView !== "grid";
-        if (homeView) {
-            homeView.hidden = nextView !== "home";
-        }
-        if (terminalView) {
-            terminalView.hidden = nextView !== "terminal";
-        }
+        pageNodes.forEach((node) => {
+            if (node.element) {
+                node.element.hidden = node.name !== nextView;
+            }
+        });
 
         updateNavigation(nextView);
 
         if (nextView === "grid") {
             requestSync();
             requestAnimationFrame(() => requestAnimationFrame(() => focusTerminal("grid")));
-        } else if (nextView === "home") {
-            requestAnimationFrame(resetLetterLayout);
-            requestAnimationFrame(() => focusTerminal("home"));
-        } else if (nextView === "terminal") {
-            requestAnimationFrame(() => focusTerminal("terminal"));
+        } else {
+            if (nextView === "home") {
+                requestAnimationFrame(resetLetterLayout);
+            }
+            requestAnimationFrame(() => focusTerminal(nextView));
         }
 
         if (hasRendered && nextView !== activeView && enteringView) {
@@ -253,18 +322,15 @@
     }
 
     function getDirectoryEntries() {
-        if (currentDirectory === "home") {
+        if (currentDirectory === "~") {
+            return getPageNamesInOrder().map((name) => `${name}/`);
+        }
+
+        const page = getPageNode(currentDirectory);
+        if (page?.editable) {
             return [
                 "tittle",
                 "description",
-            ];
-        }
-
-        if (currentDirectory === "~") {
-            return [
-                "home/",
-                "grid/",
-                "terminal/",
             ];
         }
 
@@ -282,26 +348,62 @@
         };
     }
 
-    function updateHomeContent(target, value) {
+    function parseMkdirTarget(rawCommand) {
+        const match = rawCommand.match(/^mkdir\s+(?:"([^\"]+)"|'([^']+)'|([^\s]+))$/);
+        if (!match) return null;
+
+        const rawName = (match[1] ?? match[2] ?? match[3] ?? "").trim();
+        const name = rawName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+
+        if (!name) return null;
+
+        const titleText = rawName
+            .split(/[\s_-]+/)
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(" ");
+
+        return {
+            name,
+            titleText: titleText || rawName,
+        };
+    }
+
+    function updatePageContent(pageName, target, value) {
+        const page = getPageNode(pageName);
+        if (!page || !page.editable) {
+            return false;
+        }
+
         const normalizedTarget = target === "title" ? "tittle" : target;
 
         if (normalizedTarget === "tittle") {
-            homeEditableContent.tittle = value || " ";
-            homeTitleText = homeEditableContent.tittle;
-            if (homeStage) {
-                homeStage.setAttribute("aria-label", homeEditableContent.tittle.trim() || " ");
+            const nextTitle = value || " ";
+            page.titleText = nextTitle;
+
+            if (page.kind === "home") {
+                homeTitleText = nextTitle;
+                if (homeStage) {
+                    homeStage.setAttribute("aria-label", nextTitle.trim() || " ");
+                }
+                if (homeTitleLabel) {
+                    homeTitleLabel.textContent = nextTitle;
+                }
+                buildWelcomeLetters();
+            } else if (page.titleEl) {
+                page.titleEl.textContent = nextTitle;
             }
-            if (homeTitleLabel) {
-                homeTitleLabel.textContent = homeEditableContent.tittle;
-            }
-            buildWelcomeLetters();
+
             return true;
         }
 
         if (normalizedTarget === "description") {
-            homeEditableContent.description = value;
-            if (homeDescription) {
-                homeDescription.textContent = value;
+            page.descriptionText = value;
+            if (page.descriptionEl) {
+                page.descriptionEl.textContent = value;
             }
             return true;
         }
@@ -334,6 +436,7 @@
                     "clear",
                     "ls",
                     "cd",
+                    "mkdir",
                     "echo",
                     "help",
                 ].join("\n"));
@@ -347,29 +450,38 @@
             case "cd": {
                 const target = (args[0] || "").toLowerCase();
                 if (!target) {
-                    appendTerminalOutput("usage: cd [home|grid|terminal|..|~]");
+                    appendTerminalOutput("usage: cd [page|..|~]");
                     break;
                 }
                 if (target === ".." || target === "~") {
                     currentDirectory = "~";
                     break;
                 }
-                if (target === "home" || target === "~") {
-                    currentDirectory = "home";
-                    window.location.hash = "#home";
+
+                if (getPageNode(target)) {
+                    currentDirectory = target;
+                    window.location.hash = `#${target}`;
                     break;
                 }
-                if (target === "grid") {
-                    currentDirectory = "grid";
-                    window.location.hash = "#grid";
-                    break;
-                }
-                if (target === "terminal") {
-                    currentDirectory = "terminal";
-                    window.location.hash = "#terminal";
-                    break;
-                }
+
                 appendTerminalOutput(`cd: no such location: ${args[0]}`);
+                break;
+            }
+            case "mkdir": {
+                const target = parseMkdirTarget(trimmed);
+                if (!target) {
+                    appendTerminalOutput('usage: mkdir [name] or mkdir "page name"');
+                    break;
+                }
+                if (getPageNode(target.name)) {
+                    appendTerminalOutput(`mkdir: ${target.name}: already exists`);
+                    break;
+                }
+
+                const pageNode = createDynamicPage(target.name, target.titleText);
+                insertPageNodeAfter(activeView, pageNode);
+                renderTerminal();
+                appendTerminalOutput(`mkdir: created ${target.name}/`);
                 break;
             }
             case "echo": {
@@ -378,11 +490,11 @@
                     appendTerminalOutput('usage: echo [field] > "value"');
                     break;
                 }
-                if (currentDirectory !== "home") {
+                if (!getPageNode(currentDirectory)?.editable) {
                     appendTerminalOutput("echo: no editable fields in this directory");
                     break;
                 }
-                if (!updateHomeContent(assignment.target, assignment.value)) {
+                if (!updatePageContent(currentDirectory, assignment.target, assignment.value)) {
                     appendTerminalOutput(`echo: unknown field: ${assignment.target}`);
                 }
                 break;
@@ -519,7 +631,7 @@
         });
     }
 
-    function createGridTerminalShell() {
+    function createTerminalShell(viewName, titleId, titleText, variantClass) {
         const shell = document.createElement("div");
         const title = document.createElement("h2");
         const history = document.createElement("div");
@@ -528,17 +640,17 @@
         const input = document.createElement("span");
         const cursor = document.createElement("span");
 
-        shell.className = "terminal-shell terminal-shell--bubble";
+        shell.className = `terminal-shell ${variantClass}`;
         shell.dataset.terminalShell = "";
-        shell.dataset.terminalView = "grid";
+        shell.dataset.terminalView = viewName;
         shell.tabIndex = 0;
         shell.setAttribute("role", "textbox");
         shell.setAttribute("aria-multiline", "true");
-        shell.setAttribute("aria-labelledby", "grid-terminal-title");
+        shell.setAttribute("aria-labelledby", titleId);
 
-        title.id = "grid-terminal-title";
+        title.id = titleId;
         title.className = "sr-only";
-        title.textContent = "Grid terminal";
+        title.textContent = titleText;
 
         history.className = "terminal-history";
         history.dataset.terminalHistory = "";
@@ -566,6 +678,60 @@
         registerTerminalInstance(shell);
 
         return shell;
+    }
+
+    function createGridTerminalShell() {
+        return createTerminalShell("grid", "grid-terminal-title", "Grid terminal", "terminal-shell--bubble");
+    }
+
+    function createDynamicPage(pageName, titleText) {
+        const section = document.createElement("section");
+        const layout = document.createElement("div");
+        const aside = document.createElement("aside");
+        const copy = document.createElement("div");
+        const title = document.createElement("h1");
+        const description = document.createElement("p");
+
+        section.id = `${pageName}-view`;
+        section.className = "catalog-view dynamic-page page-view";
+        section.hidden = true;
+
+        layout.className = "catalog-view__layout";
+        aside.className = "catalog-view__terminal";
+        copy.className = "catalog-view__copy";
+
+        title.id = `${pageName}-title`;
+        title.className = "dynamic-page__title";
+        title.textContent = titleText;
+
+        description.id = `${pageName}-description`;
+        description.className = "dynamic-page__description";
+        description.textContent = "This page is empty.";
+
+        section.setAttribute("aria-labelledby", title.id);
+
+        aside.appendChild(
+            createTerminalShell(
+                pageName,
+                `${pageName}-terminal-title`,
+                `${titleText} terminal`,
+                "terminal-shell--sidebar"
+            )
+        );
+        copy.appendChild(title);
+        copy.appendChild(description);
+        layout.appendChild(aside);
+        layout.appendChild(copy);
+        section.appendChild(layout);
+
+        return createPageNode(pageName, section, {
+            editable: true,
+            kind: "dynamic",
+            titleEl: title,
+            descriptionEl: description,
+            titleText,
+            descriptionText: description.textContent,
+        });
     }
 
     function ensureGridTerminalBubble() {
@@ -883,6 +1049,8 @@
         physicsFrame = window.requestAnimationFrame(physicsTick);
     }
 
+    initializePageChain();
+    activeView = getActiveView();
     document.querySelectorAll("[data-terminal-shell]").forEach((shell) => {
         registerTerminalInstance(shell);
     });

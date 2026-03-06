@@ -351,6 +351,21 @@ body::-webkit-scrollbar {
   cursor: grabbing;
 }
 
+.dynamic-page__title {
+  margin: 0 0 18px;
+  color: #171411;
+  font-family: "Courier New", "Lucida Console", monospace;
+  font-size: clamp(3.2rem, 8vw, 6.8rem);
+  font-weight: 700;
+  letter-spacing: -0.08em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+.dynamic-page__description {
+  margin: 0;
+}
+
 .catalog-view__copy p {
   margin: 0;
   max-width: 34rem;
