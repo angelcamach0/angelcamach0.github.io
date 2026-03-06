@@ -195,7 +195,6 @@
             case "help":
                 appendTerminalOutput([
                     "Available commands:",
-                    "home",
                     "clear",
                     "ls",
                     "cd",
@@ -205,14 +204,11 @@
             case "clear":
                 clearTerminalHistory();
                 break;
-            case "home":
-                window.location.hash = "#home";
-                break;
             case "ls":
                 appendTerminalOutput([
-                    "home",
-                    "grid",
-                    "terminal",
+                    "home/",
+                    "grid/",
+                    "terminal/",
                 ].join("\n"));
                 break;
             case "cd": {
