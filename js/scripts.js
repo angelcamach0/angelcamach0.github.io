@@ -3,11 +3,11 @@
     const grid = document.getElementById("bubble-grid");
     if (!grid) return;
 
-    const targetSize = 170; // px, mid of clamp range
-    const overscan = 6;     // add a few extra so edges stay filled
+    const targetSize = 130; // px, mid of updated clamp range
+    const overscan = 8;     // add a few extra so edges stay filled
 
     function fillGrid() {
-        const w = window.innerWidth;
+        const w = grid.clientWidth || window.innerWidth;
         const h = window.innerHeight;
         const cols = Math.max(1, Math.round(w / targetSize));
         const rows = Math.max(1, Math.round(h / targetSize));

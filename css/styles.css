@@ -3,9 +3,9 @@
   --cream: #d9c6a3;
   --soft-grey: #e7e3db;
   --bubble-bg: #0d0d0d;
-  --gap: clamp(0.6rem, 1vw, 1.2rem);
-  --bubble-size: clamp(120px, 18vw, 220px);
-  --radius: 18px;
+  --gap: clamp(0.5rem, 1vw, 1rem);
+  --bubble-size: clamp(90px, 11vw, 150px);
+  --radius: 16px;
 }
 
 *,
