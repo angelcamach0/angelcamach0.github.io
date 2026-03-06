@@ -1,22 +1,34 @@
 (function () {
     const grid = document.getElementById("bubble-grid");
     const homeView = document.getElementById("home-view");
+    const homeStage = document.getElementById("home-title");
+    const welcomeLetters = document.getElementById("welcome-letters");
     const titleBar = document.querySelector(".title-bar");
     const navLinks = Array.from(document.querySelectorAll(".title-bar__nav a"));
     const root = document.documentElement;
     if (!grid) return;
 
     const extraScrollScreens = 2;
+    const welcomeWord = "Welcome";
+    const welcomeBodies = [];
+    const gravity = 2200;
+    const bounce = 0.48;
+    const floorFriction = 0.985;
     let activeView = getActiveView();
     let hasRendered = false;
+    let dragBody = null;
+    let dragPointerId = null;
+    let lastPointerSample = null;
+    let physicsFrame = null;
+    let physicsLastTime = 0;
 
     function getActiveView() {
         return window.location.hash === "#grid" ? "grid" : "home";
     }
 
-    function updateNavigation(activeView) {
+    function updateNavigation(viewName) {
         navLinks.forEach((link) => {
-            link.classList.toggle("is-active", link.dataset.view === activeView);
+            link.classList.toggle("is-active", link.dataset.view === viewName);
         });
     }
 
@@ -35,6 +47,8 @@
 
         if (showGrid) {
             requestSync();
+        } else {
+            requestAnimationFrame(resetLetterLayout);
         }
 
         if (hasRendered && nextView !== activeView && enteringView) {
@@ -202,23 +216,254 @@
         });
     }
 
-    let frame = null;
-
     function requestSync() {
-        if (grid.hidden || frame !== null) return;
-        frame = window.requestAnimationFrame(() => {
-            frame = null;
+        if (grid.hidden || requestSync.frame !== null) return;
+        requestSync.frame = window.requestAnimationFrame(() => {
+            requestSync.frame = null;
             syncGrid();
         });
     }
+    requestSync.frame = null;
+
+    function applyLetterTransform(body) {
+        body.el.style.transform = `translate(${body.x}px, ${body.y}px) rotate(${body.rotation}deg)`;
+    }
+
+    function resetLetterLayout() {
+        if (!homeStage || !welcomeLetters) return;
+
+        const stageWidth = welcomeStageBounds().width;
+        if (stageWidth < 20) return;
+        let cursorX = 0;
+        const gap = Math.max(0, stageWidth * 0.008);
+
+        welcomeBodies.forEach((body) => {
+            body.el.style.transform = "translate(0px, 0px) rotate(0deg)";
+            const rect = body.el.getBoundingClientRect();
+            body.width = rect.width;
+            body.height = rect.height;
+        });
+
+        welcomeBodies.forEach((body) => {
+            body.homeX = cursorX;
+            body.homeY = 0;
+            body.x = cursorX;
+            body.y = 0;
+            body.vx = 0;
+            body.vy = 0;
+            body.rotation = 0;
+            body.angularVelocity = 0;
+            body.active = false;
+            body.dragging = false;
+            body.el.classList.remove("is-dragging");
+            applyLetterTransform(body);
+            cursorX += body.width + gap;
+        });
+    }
+
+    function welcomeStageBounds() {
+        const rect = homeStage.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+    }
+
+    function buildWelcomeLetters() {
+        if (!welcomeLetters) return;
+
+        welcomeLetters.textContent = "";
+        welcomeBodies.length = 0;
+
+        Array.from(welcomeWord).forEach((character) => {
+            const body = {
+                el: document.createElement("span"),
+                x: 0,
+                y: 0,
+                vx: 0,
+                vy: 0,
+                rotation: 0,
+                angularVelocity: 0,
+                width: 0,
+                height: 0,
+                homeX: 0,
+                homeY: 0,
+                active: false,
+                dragging: false,
+                dragOffsetX: 0,
+                dragOffsetY: 0,
+            };
+
+            body.el.className = "welcome-letter";
+            body.el.textContent = character;
+            body.el.setAttribute("aria-hidden", "true");
+            body.el.addEventListener("pointerdown", (event) => startLetterDrag(event, body));
+
+            welcomeLetters.appendChild(body.el);
+            welcomeBodies.push(body);
+        });
+
+        requestAnimationFrame(resetLetterLayout);
+    }
+
+    function startLetterDrag(event, body) {
+        if (!homeStage || homeView.hidden) return;
+
+        const stageRect = homeStage.getBoundingClientRect();
+        dragBody = body;
+        dragPointerId = event.pointerId;
+        body.active = true;
+        body.dragging = true;
+        body.vx = 0;
+        body.vy = 0;
+        body.angularVelocity = 0;
+        body.dragOffsetX = event.clientX - stageRect.left - body.x;
+        body.dragOffsetY = event.clientY - stageRect.top - body.y;
+        body.el.classList.add("is-dragging");
+        body.el.setPointerCapture(event.pointerId);
+        lastPointerSample = {
+            time: performance.now(),
+            x: event.clientX,
+            y: event.clientY,
+        };
+
+        ensurePhysicsLoop();
+    }
+
+    function moveDraggedLetter(event) {
+        if (!dragBody || event.pointerId !== dragPointerId || !homeStage) return;
+
+        const stageRect = homeStage.getBoundingClientRect();
+        const maxX = stageRect.width - dragBody.width;
+        const maxY = stageRect.height - dragBody.height;
+        const nextX = event.clientX - stageRect.left - dragBody.dragOffsetX;
+        const nextY = event.clientY - stageRect.top - dragBody.dragOffsetY;
+        const now = performance.now();
+
+        dragBody.x = Math.min(Math.max(0, nextX), Math.max(0, maxX));
+        dragBody.y = Math.min(Math.max(0, nextY), Math.max(0, maxY));
+        dragBody.rotation += (event.movementX || 0) * 0.08;
+        applyLetterTransform(dragBody);
+
+        if (lastPointerSample) {
+            const dt = Math.max(16, now - lastPointerSample.time);
+            dragBody.vx = ((event.clientX - lastPointerSample.x) / dt) * 1000;
+            dragBody.vy = ((event.clientY - lastPointerSample.y) / dt) * 1000;
+            dragBody.angularVelocity = dragBody.vx * 0.015;
+        }
+
+        lastPointerSample = {
+            time: now,
+            x: event.clientX,
+            y: event.clientY,
+        };
+    }
+
+    function endLetterDrag(event) {
+        if (!dragBody) return;
+        if (event && event.pointerId !== undefined && event.pointerId !== dragPointerId) return;
+
+        dragBody.dragging = false;
+        dragBody.el.classList.remove("is-dragging");
+        dragBody = null;
+        dragPointerId = null;
+        lastPointerSample = null;
+        ensurePhysicsLoop();
+    }
+
+    function updateWelcomePhysics(deltaSeconds) {
+        if (!homeStage || homeView.hidden) return;
+
+        const stage = welcomeStageBounds();
+
+        welcomeBodies.forEach((body) => {
+            if (body.dragging || !body.active) return;
+
+            body.vy += gravity * deltaSeconds;
+            body.vx *= 0.997;
+            body.angularVelocity *= 0.995;
+
+            body.x += body.vx * deltaSeconds;
+            body.y += body.vy * deltaSeconds;
+            body.rotation += body.angularVelocity * deltaSeconds;
+
+            if (body.x <= 0) {
+                body.x = 0;
+                body.vx *= -bounce;
+                body.angularVelocity *= -0.5;
+            }
+
+            if (body.x + body.width >= stage.width) {
+                body.x = Math.max(0, stage.width - body.width);
+                body.vx *= -bounce;
+                body.angularVelocity *= -0.5;
+            }
+
+            if (body.y <= 0) {
+                body.y = 0;
+                body.vy *= -0.28;
+            }
+
+            if (body.y + body.height >= stage.height) {
+                body.y = Math.max(0, stage.height - body.height);
+                body.vy *= -bounce;
+                body.vx *= floorFriction;
+            body.angularVelocity *= 0.88;
+
+                if (Math.abs(body.vy) < 22) {
+                    body.vy = 0;
+                }
+                if (Math.abs(body.vx) < 8) {
+                    body.vx = 0;
+                }
+                if (Math.abs(body.angularVelocity) < 4) {
+                    body.angularVelocity = 0;
+                }
+                if (body.vx === 0 && body.vy === 0 && body.angularVelocity === 0) {
+                    body.active = false;
+                }
+            }
+
+            applyLetterTransform(body);
+        });
+    }
+
+    function physicsTick(now) {
+        if (!physicsLastTime) {
+            physicsLastTime = now;
+        }
+
+        const deltaSeconds = Math.min(0.032, (now - physicsLastTime) / 1000);
+        physicsLastTime = now;
+
+        updateWelcomePhysics(deltaSeconds);
+
+        const hasActiveLetters = welcomeBodies.some((body) => body.active || body.dragging);
+        if (hasActiveLetters || dragBody) {
+            physicsFrame = window.requestAnimationFrame(physicsTick);
+        } else {
+            physicsFrame = null;
+            physicsLastTime = 0;
+        }
+    }
+
+    function ensurePhysicsLoop() {
+        if (physicsFrame !== null) return;
+        physicsFrame = window.requestAnimationFrame(physicsTick);
+    }
 
     renderView();
-    window.addEventListener("resize", requestSync);
+    buildWelcomeLetters();
+    window.addEventListener("resize", () => {
+        requestSync();
+        resetLetterLayout();
+    });
     window.addEventListener("hashchange", renderView);
     document.addEventListener("pointermove", (event) => {
-        if (event.pointerType && event.pointerType !== "mouse") return;
-        showCursorInvert(event.clientX, event.clientY);
+        if (!event.pointerType || event.pointerType === "mouse") {
+            showCursorInvert(event.clientX, event.clientY);
+        }
+        moveDraggedLetter(event);
     });
+    document.addEventListener("pointerup", endLetterDrag);
+    document.addEventListener("pointercancel", endLetterDrag);
     document.addEventListener("pointerleave", hideCursorInvert);
     document.addEventListener("mouseout", (event) => {
         if (!event.relatedTarget) {
