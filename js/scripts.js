@@ -2,7 +2,7 @@
     const grid = document.getElementById("bubble-grid");
     if (!grid) return;
 
-    const overscanRows = 1;
+    const extraScrollScreens = 2;
 
     function getColumnCount(width) {
         if (width < 560) return 1;
@@ -15,10 +15,11 @@
         const gap = parseFloat(styles.gap) || 0;
         const width = window.innerWidth;
         const height = window.innerHeight;
+        const targetHeight = height * (1 + extraScrollScreens);
 
         const cols = getColumnCount(width);
         const cellSize = (width - gap * (cols - 1)) / cols;
-        const rows = Math.max(1, Math.ceil((height + gap) / (cellSize + gap)) + overscanRows);
+        const rows = Math.max(1, Math.ceil((targetHeight + gap) / (cellSize + gap)));
         const needed = cols * rows;
 
         grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
