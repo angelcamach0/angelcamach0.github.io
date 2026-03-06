@@ -26,7 +26,7 @@
         const rowSpan = Math.max(1, Number(bubble.dataset.rowSpan) || 1);
         const cellSize = Number(grid.dataset.cellSize) || 0;
         const label = bubble.querySelector(".bubble__label");
-        const labelSize = Math.max(28, Math.min(220, cellSize * Math.min(colSpan, rowSpan) * 0.38));
+        const labelSize = Math.max(11, Math.min(20, cellSize * 0.1));
 
         bubble.dataset.colSpan = String(colSpan);
         bubble.dataset.rowSpan = String(rowSpan);
@@ -48,6 +48,10 @@
         } while (value >= 0);
 
         return label;
+    }
+
+    function getBubbleTitle(index) {
+        return `00-0${getAlphabetLabel(index)}`;
     }
 
     function attachResize(bubble, handle) {
@@ -144,7 +148,7 @@
         Array.from(grid.children).forEach((bubble, index) => {
             const label = bubble.querySelector(".bubble__label");
             if (label) {
-                label.textContent = getAlphabetLabel(index);
+                label.textContent = getBubbleTitle(index);
             }
         });
     }
