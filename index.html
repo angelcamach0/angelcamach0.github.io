@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dynamic Bubbles</title>
-    <link rel="stylesheet" href="css/styles.css?v=grid41" />
+    <link rel="stylesheet" href="css/styles.css?v=grid42" />
 </head>
 <body>
     <header class="title-bar" id="top">
@@ -18,6 +18,20 @@
         <section id="bubble-grid" class="page-view" aria-label="dynamic bubble grid"></section>
         <section id="home-view" class="catalog-view page-view" aria-labelledby="home-title" hidden>
             <div class="catalog-view__layout">
+                <section class="home-status" aria-label="Texas weather and links">
+                    <div class="home-status__metric">
+                        <span class="home-status__label">Texas</span>
+                        <span class="home-status__value" data-texas-temp>--&deg;F</span>
+                    </div>
+                    <div class="home-status__metric">
+                        <span class="home-status__label">Time</span>
+                        <time class="home-status__value home-status__value--time" data-texas-time>00:00:00</time>
+                    </div>
+                    <div class="home-status__actions">
+                        <a class="home-status__link" href="https://github.com/angelcamach0" target="_blank" rel="noreferrer">GitHub</a>
+                        <button class="home-status__link home-status__link--button" type="button" data-resume-button>Resume</button>
+                    </div>
+                </section>
                 <aside class="catalog-view__terminal">
                     <div class="terminal-shell terminal-shell--sidebar" data-terminal-shell data-terminal-view="home" tabindex="0" role="textbox" aria-multiline="true" aria-labelledby="home-terminal-title">
                         <h2 id="home-terminal-title" class="sr-only">Home terminal</h2>
@@ -30,9 +44,9 @@
                     </div>
                 </aside>
                 <div class="catalog-view__copy">
-                    <h1 id="home-title" class="welcome-stage" aria-label="Welcome">
+                    <h1 id="home-title" class="welcome-stage" aria-label="Welcome.">
                         <span id="welcome-letters" class="welcome-stage__letters" aria-hidden="true"></span>
-                        <span id="home-title-label" class="sr-only">Welcome</span>
+                        <span id="home-title-label" class="sr-only">Welcome.</span>
                     </h1>
                     <p id="home-description">This is a repository of random programs, scripts and documents. No particular organization has been implemented yet.</p>
                 </div>
@@ -50,6 +64,6 @@
             </div>
         </section>
     </main>
-    <script src="js/scripts.js?v=grid38"></script>
+    <script src="js/scripts.js?v=grid42"></script>
 </body>
 </html>

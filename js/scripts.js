@@ -5,6 +5,9 @@
     const homeStage = document.getElementById("home-title");
     const homeTitleLabel = document.getElementById("home-title-label");
     const homeDescription = document.getElementById("home-description");
+    const texasTemp = document.querySelector("[data-texas-temp]");
+    const texasTime = document.querySelector("[data-texas-time]");
+    const resumeButton = document.querySelector("[data-resume-button]");
     const welcomeLetters = document.getElementById("welcome-letters");
     const titleBar = document.querySelector(".title-bar");
     const titleBarNav = document.querySelector(".title-bar__nav");
@@ -16,7 +19,15 @@
 
     const extraScrollScreens = 2;
     const terminalPrompt = "friend@thearkprojects:~$";
-    let homeTitleText = homeStage?.getAttribute("aria-label") || "Welcome";
+    const texasTimeFormatter = new Intl.DateTimeFormat("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+        timeZone: "America/Chicago",
+    });
+    const texasWeatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=30.2672&longitude=-97.7431&current=temperature_2m&temperature_unit=fahrenheit";
+    let homeTitleText = homeStage?.getAttribute("aria-label") || "Welcome.";
     const welcomeBodies = [];
     const gravity = 2200;
     const bounce = 0.48;
@@ -38,6 +49,32 @@
     let cmatrixFrame = null;
     let cmatrixLastTime = 0;
     const cmatrixFallbackSource = "friend@thearkprojects:~$lshome/grid/terminal/";
+
+    function updateTexasTime() {
+        if (!texasTime) return;
+        texasTime.textContent = texasTimeFormatter.format(new Date());
+    }
+
+    async function loadTexasWeather() {
+        if (!texasTemp) return;
+
+        try {
+            const response = await fetch(texasWeatherUrl, {
+                headers: {
+                    accept: "application/json",
+                },
+            });
+            if (!response.ok) {
+                throw new Error(`weather request failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const temperature = data?.current?.temperature_2m;
+            texasTemp.textContent = Number.isFinite(temperature) ? `${Math.round(temperature)}°F` : "--°F";
+        } catch (error) {
+            texasTemp.textContent = "--°F";
+        }
+    }
 
     function getActiveView() {
         const hash = window.location.hash.toLowerCase().replace(/^#/, "");
@@ -1529,6 +1566,13 @@
     renderView();
     renderTerminal();
     buildWelcomeLetters();
+    updateTexasTime();
+    loadTexasWeather();
+    window.setInterval(updateTexasTime, 1000);
+    window.setInterval(loadTexasWeather, 30 * 60 * 1000);
+    if (resumeButton) {
+        resumeButton.title = "Add a resume file or URL to enable this button";
+    }
     window.addEventListener("resize", () => {
         requestSync();
         resetLetterLayout();
