@@ -37,7 +37,7 @@
     let cmatrixActive = false;
     let cmatrixFrame = null;
     let cmatrixLastTime = 0;
-    const cmatrixChars = "01ARKPROJECTS[]{}<>/\\|-_=+*";
+    const cmatrixChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ[]{}<>/\\|-_=+*";
 
     function getActiveView() {
         const hash = window.location.hash.toLowerCase().replace(/^#/, "");
@@ -348,7 +348,7 @@
         layer.setAttribute("aria-hidden", "true");
 
         label.className = "terminal-matrix__label";
-        label.textContent = "CMATRIX - ESC TO EXIT";
+        label.textContent = "CMATRIX · ESC / Q / CTRL+C";
 
         canvas.className = "terminal-matrix__canvas";
 
@@ -360,23 +360,37 @@
         instance.matrixCanvas = canvas;
         instance.matrixContext = canvas.getContext("2d");
         instance.matrixColumns = [];
-        instance.matrixSpeeds = [];
         instance.matrixFontSize = 16;
         instance.matrixWidth = 0;
         instance.matrixHeight = 0;
         instance.matrixDpr = 1;
     }
 
+    function createCmatrixColumn(instance) {
+        const height = instance.matrixHeight || instance.shell.clientHeight || 0;
+        const fontSize = instance.matrixFontSize || 16;
+        const rows = Math.max(1, Math.ceil(height / fontSize));
+
+        return {
+            head: -Math.random() * rows * 1.4,
+            speed: 0.55 + (Math.random() * 1.7),
+            length: Math.max(6, Math.floor(rows * (0.14 + (Math.random() * 0.18)))),
+            offset: Math.floor(Math.random() * cmatrixChars.length),
+        };
+    }
+
     function resetCmatrixColumns(instance) {
         if (!instance) return;
 
         const width = instance.matrixWidth || instance.shell.clientWidth || 0;
-        const height = instance.matrixHeight || instance.shell.clientHeight || 0;
         const fontSize = instance.matrixFontSize || 16;
         const columnCount = Math.max(1, Math.floor(width / fontSize));
 
-        instance.matrixColumns = Array.from({ length: columnCount }, () => Math.random() * (height / fontSize));
-        instance.matrixSpeeds = Array.from({ length: columnCount }, () => 0.7 + (Math.random() * 1.15));
+        instance.matrixColumns = Array.from({ length: columnCount }, () => createCmatrixColumn(instance));
+    }
+
+    function respawnCmatrixColumn(instance, index) {
+        instance.matrixColumns[index] = createCmatrixColumn(instance);
     }
 
     function resizeCmatrixLayer(instance) {
@@ -422,27 +436,44 @@
             const height = instance.matrixHeight;
             const fontSize = instance.matrixFontSize;
             const rowHeight = fontSize;
+            const maxRow = Math.ceil(height / rowHeight);
 
-            ctx.fillStyle = "rgba(5, 5, 5, 0.16)";
+            ctx.fillStyle = "rgba(5, 5, 5, 0.22)";
             ctx.fillRect(0, 0, width, height);
             ctx.font = `${fontSize}px "Courier New", "Lucida Console", monospace`;
 
-            instance.matrixColumns.forEach((position, index) => {
+            instance.matrixColumns.forEach((column, index) => {
                 const x = index * fontSize;
-                const y = position * rowHeight;
-                const char = cmatrixChars.charAt(Math.floor(Math.random() * cmatrixChars.length));
+                const headRow = Math.floor(column.head);
+                const trailLength = column.length;
 
-                ctx.fillStyle = "#ecffe2";
-                ctx.fillText(char, x, y);
-                ctx.fillStyle = "#6bcf5f";
-                ctx.fillText(char, x, Math.max(0, y - rowHeight));
+                for (let trailIndex = 0; trailIndex < trailLength; trailIndex += 1) {
+                    const row = headRow - trailIndex;
+                    if (row < 0 || row > maxRow) continue;
 
-                const nextPosition = position + (instance.matrixSpeeds[index] * step);
-                if ((nextPosition * rowHeight) > height + (Math.random() * height * 0.35)) {
-                    instance.matrixColumns[index] = -Math.random() * 18;
-                    instance.matrixSpeeds[index] = 0.7 + (Math.random() * 1.15);
-                } else {
-                    instance.matrixColumns[index] = nextPosition;
+                    const y = row * rowHeight;
+                    const charIndex = (column.offset + headRow + trailIndex + index) % cmatrixChars.length;
+                    const char = cmatrixChars.charAt((charIndex + cmatrixChars.length) % cmatrixChars.length);
+
+                    if (trailIndex === 0) {
+                        ctx.fillStyle = "#f5efdf";
+                    } else if (trailIndex < 3) {
+                        ctx.fillStyle = `rgba(192, 255, 188, ${0.95 - (trailIndex * 0.18)})`;
+                    } else {
+                        const alpha = Math.max(0.08, 0.72 - ((trailIndex / trailLength) * 0.74));
+                        ctx.fillStyle = `rgba(84, 212, 102, ${alpha})`;
+                    }
+
+                    ctx.fillText(char, x, y);
+                }
+
+                column.head += column.speed * step;
+                if (Math.random() < 0.012 * step) {
+                    column.offset = (column.offset + 1 + Math.floor(Math.random() * 3)) % cmatrixChars.length;
+                }
+
+                if ((headRow - trailLength) > (maxRow + 4)) {
+                    respawnCmatrixColumn(instance, index);
                 }
             });
         });
@@ -477,6 +508,7 @@
         terminalInstances.forEach((instance) => {
             ensureCmatrixLayer(instance);
             instance.shell.classList.add("is-cmatrix");
+            instance.shell.scrollTop = 0;
             resizeCmatrixLayer(instance);
             const ctx = instance.matrixContext;
             if (ctx && instance.matrixWidth && instance.matrixHeight) {
@@ -485,7 +517,6 @@
             }
         });
 
-        appendTerminalOutput("cmatrix: press Esc to exit");
         if (cmatrixFrame !== null) {
             window.cancelAnimationFrame(cmatrixFrame);
         }
@@ -508,6 +539,7 @@
                 instance.matrixContext.clearRect(0, 0, instance.matrixWidth, instance.matrixHeight);
             }
         });
+        syncTerminalScroll();
     }
 
     function renderView() {
@@ -860,26 +892,30 @@
 
     function handleTerminalKeydown(event) {
         if (!isTerminalInputActive()) return;
-        if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
-
         if (cmatrixActive) {
-            if (event.key === "Escape") {
+            if (event.key === "Escape" || event.key === "Esc") {
                 event.preventDefault();
                 stopCmatrix();
                 return;
             }
 
-            if (
-                event.key === "Enter" ||
-                event.key === "Backspace" ||
-                event.key === "Tab" ||
-                event.key.length === 1
-            ) {
+            if (event.ctrlKey && event.key.toLowerCase() === "c") {
+                event.preventDefault();
                 stopCmatrix();
-            } else {
                 return;
             }
+
+            if (!event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === "q") {
+                event.preventDefault();
+                stopCmatrix();
+                return;
+            }
+
+            event.preventDefault();
+            return;
         }
+
+        if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
 
         if (event.key === "Backspace") {
             event.preventDefault();

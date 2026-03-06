@@ -240,6 +240,10 @@ body::-webkit-scrollbar {
   visibility: hidden;
 }
 
+.terminal-shell.is-cmatrix {
+  overflow: hidden;
+}
+
 .terminal-shell::-webkit-scrollbar {
   display: none;
   width: 0;
@@ -320,6 +324,7 @@ body::-webkit-scrollbar {
   color: rgba(239, 226, 198, 0.72);
   font-size: 0.74rem;
   letter-spacing: 0.08em;
+  text-shadow: 0 0 10px rgba(239, 226, 198, 0.15);
 }
 
 .terminal-prompt {
