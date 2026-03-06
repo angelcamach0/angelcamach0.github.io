@@ -230,7 +230,7 @@
     function initializePageChain() {
         appendPageNode(createPageNode("home", homeView, {
             navLabel: "Home",
-            showInNav: false,
+            showInNav: true,
             editable: true,
             kind: "home",
             titleEl: homeStage,
