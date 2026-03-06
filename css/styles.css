@@ -170,12 +170,13 @@ body::-webkit-scrollbar {
 
 .catalog-view__layout {
   display: grid;
-  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
   gap: clamp(24px, 4vw, 56px);
   align-items: start;
 }
 
 .catalog-view__terminal {
+  grid-column: 2;
   position: sticky;
   top: calc(var(--title-height) + 28px);
   align-self: start;
@@ -272,6 +273,7 @@ body::-webkit-scrollbar {
 }
 
 .catalog-view__copy {
+  grid-column: 1;
   max-width: 58rem;
   min-width: 0;
   padding-top: clamp(12px, 5vw, 48px);
@@ -415,10 +417,12 @@ body::-webkit-scrollbar {
   }
 
   .catalog-view__terminal {
+    grid-column: auto;
     position: static;
   }
 
   .catalog-view__copy {
+    grid-column: auto;
     padding-top: 0;
   }
 
