@@ -34,12 +34,14 @@ body::-webkit-scrollbar {
   width: 100vw;
   min-height: 100vh;
   display: grid;
+  grid-auto-flow: dense;
   gap: var(--gap);
   padding: 0;
   background: var(--background);
 }
 
 .bubble {
+  position: relative;
   width: 100%;
   height: 100%;
   min-width: 0;
@@ -56,6 +58,33 @@ body::-webkit-scrollbar {
   border-color: #e4d6b7;
 }
 
+.bubble.is-resizing {
+  transition: none;
+  transform: none;
+}
+
+.bubble__handle {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--outline);
+  cursor: nwse-resize;
+  opacity: 0.9;
+  touch-action: none;
+}
+
+.bubble__handle::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-right: 2px solid #2a251d;
+  border-bottom: 2px solid #2a251d;
+}
+
 @media (max-width: 720px) {
   :root {
     --gap: 6px;
@@ -64,5 +93,16 @@ body::-webkit-scrollbar {
 
   .bubble {
     border-width: 2px;
+  }
+
+  .bubble__handle {
+    right: 10px;
+    bottom: 10px;
+    width: 14px;
+    height: 14px;
+  }
+
+  .bubble__handle::before {
+    inset: 3px;
   }
 }
