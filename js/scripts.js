@@ -74,6 +74,7 @@
     let tileCatalogSource = "local";
     const tilePreviewCache = new Map();
     const tilePreviewRequests = new Map();
+    let invertHideTimer = null;
     let tileFilter = {
         mode: "all",
         value: "all",
@@ -893,6 +894,17 @@
             input: shell.querySelector("[data-terminal-input]"),
             view: shell.dataset.terminalView || "",
         };
+        const capture = document.createElement("textarea");
+
+        capture.className = "terminal-capture";
+        capture.setAttribute("aria-hidden", "true");
+        capture.setAttribute("autocapitalize", "off");
+        capture.setAttribute("autocomplete", "off");
+        capture.setAttribute("autocorrect", "off");
+        capture.setAttribute("enterkeyhint", "send");
+        capture.spellcheck = false;
+        shell.appendChild(capture);
+        instance.capture = capture;
 
         ensureCmatrixLayer(instance);
 
@@ -906,6 +918,54 @@
             if (!pasted) return;
             event.preventDefault();
             terminalBuffer += pasted.replace(/\r/g, "");
+            renderTerminal();
+        });
+        capture.addEventListener("keydown", (event) => {
+            if (!isTerminalInputActive()) return;
+
+            if (cmatrixActive) {
+                if (event.key === "Escape" || event.key === "Esc") {
+                    event.preventDefault();
+                    stopCmatrix();
+                    return;
+                }
+
+                if (event.ctrlKey && event.key.toLowerCase() === "c") {
+                    event.preventDefault();
+                    stopCmatrix();
+                    return;
+                }
+
+                if (!event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === "q") {
+                    event.preventDefault();
+                    stopCmatrix();
+                    return;
+                }
+            }
+
+            if (event.key === "Tab") {
+                event.preventDefault();
+                const start = capture.selectionStart || capture.value.length;
+                const end = capture.selectionEnd || capture.value.length;
+                capture.setRangeText("    ", start, end, "end");
+                terminalBuffer = capture.value.replace(/\r/g, "");
+                renderTerminal();
+            }
+        });
+        capture.addEventListener("input", () => {
+            const rawValue = capture.value.replace(/\r/g, "");
+
+            if (rawValue.includes("\n")) {
+                terminalBuffer = rawValue.replace(/\n+/g, "");
+                capture.value = "";
+                appendTerminalEntry(terminalBuffer);
+                runTerminalCommand(terminalBuffer);
+                terminalBuffer = "";
+                renderTerminal();
+                return;
+            }
+
+            terminalBuffer = rawValue;
             renderTerminal();
         });
 
@@ -1224,10 +1284,17 @@
         if (!isTerminalInstanceVisible(instance)) return;
 
         activeTerminalShell = instance.shell;
+        if (instance.capture) {
+            instance.capture.value = terminalBuffer;
+        }
         try {
-            instance.shell.focus({ preventScroll: true });
+            (instance.capture || instance.shell).focus({ preventScroll: true });
         } catch (error) {
-            instance.shell.focus();
+            (instance.capture || instance.shell).focus();
+        }
+        if (instance.capture && typeof instance.capture.setSelectionRange === "function") {
+            const end = instance.capture.value.length;
+            instance.capture.setSelectionRange(end, end);
         }
         syncTerminalScroll();
     }
@@ -1268,6 +1335,9 @@
             });
 
             instance.input.textContent = terminalBuffer;
+            if (instance.capture && instance.capture.value !== terminalBuffer) {
+                instance.capture.value = terminalBuffer;
+            }
         });
 
         syncTerminalScroll();
@@ -1407,7 +1477,7 @@
     function isTerminalInputActive() {
         return Boolean(
             activeTerminalShell &&
-            document.activeElement === activeTerminalShell &&
+            activeTerminalShell.contains(document.activeElement) &&
             !activeTerminalShell.closest("[hidden]")
         );
     }
@@ -1564,6 +1634,7 @@
 
     function handleTerminalKeydown(event) {
         if (!isTerminalInputActive()) return;
+        if (event.target instanceof HTMLElement && event.target.closest(".terminal-capture")) return;
         if (cmatrixActive) {
             if (event.key === "Escape" || event.key === "Esc") {
                 event.preventDefault();
@@ -1620,12 +1691,29 @@
     }
 
     function showCursorInvert(clientX, clientY) {
+        if (invertHideTimer !== null) {
+            window.clearTimeout(invertHideTimer);
+            invertHideTimer = null;
+        }
         root.style.setProperty("--cursor-x", `${clientX}px`);
         root.style.setProperty("--cursor-y", `${clientY}px`);
         root.style.setProperty("--invert-opacity", "1");
     }
 
-    function hideCursorInvert() {
+    function hideCursorInvert(delay = 0) {
+        if (invertHideTimer !== null) {
+            window.clearTimeout(invertHideTimer);
+            invertHideTimer = null;
+        }
+
+        if (delay > 0) {
+            invertHideTimer = window.setTimeout(() => {
+                root.style.setProperty("--invert-opacity", "0");
+                invertHideTimer = null;
+            }, delay);
+            return;
+        }
+
         root.style.setProperty("--invert-opacity", "0");
     }
 
@@ -2428,14 +2516,25 @@
     });
     window.addEventListener("hashchange", renderView);
     document.addEventListener("keydown", handleTerminalKeydown);
+    document.addEventListener("pointerdown", (event) => {
+        showCursorInvert(event.clientX, event.clientY);
+    });
     document.addEventListener("pointermove", (event) => {
-        if (!event.pointerType || event.pointerType === "mouse") {
+        if (!event.pointerType || event.pointerType === "mouse" || event.pressure > 0 || event.buttons > 0) {
             showCursorInvert(event.clientX, event.clientY);
         }
         moveDraggedLetter(event);
     });
-    document.addEventListener("pointerup", endLetterDrag);
-    document.addEventListener("pointercancel", endLetterDrag);
+    document.addEventListener("pointerup", (event) => {
+        endLetterDrag(event);
+        if (event.pointerType && event.pointerType !== "mouse") {
+            hideCursorInvert(180);
+        }
+    });
+    document.addEventListener("pointercancel", (event) => {
+        endLetterDrag(event);
+        hideCursorInvert();
+    });
     document.addEventListener("pointerleave", hideCursorInvert);
     document.addEventListener("mouseout", (event) => {
         if (!event.relatedTarget) {

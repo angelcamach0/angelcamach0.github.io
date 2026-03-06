@@ -323,6 +323,23 @@ body::-webkit-scrollbar {
   height: 0;
 }
 
+.terminal-capture {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0.01;
+  resize: none;
+  overflow: hidden;
+  pointer-events: none;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+}
+
 .terminal-shell--sidebar {
   min-height: clamp(360px, 62vh, 640px);
   max-height: calc(100vh - var(--title-height) - 56px);
