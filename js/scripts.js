@@ -37,7 +37,7 @@
     let cmatrixActive = false;
     let cmatrixFrame = null;
     let cmatrixLastTime = 0;
-    const cmatrixChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ[]{}<>/\\|-_=+*";
+    const cmatrixFallbackSource = "friend@thearkprojects:~$lshome/grid/terminal/";
 
     function getActiveView() {
         const hash = window.location.hash.toLowerCase().replace(/^#/, "");
@@ -364,18 +364,42 @@
         instance.matrixWidth = 0;
         instance.matrixHeight = 0;
         instance.matrixDpr = 1;
+        instance.matrixSource = cmatrixFallbackSource;
+    }
+
+    function buildCmatrixSource() {
+        const fragments = [];
+
+        terminalTranscript.forEach((entry) => {
+            if (entry.type === "command") {
+                fragments.push(`${terminalPrompt}${entry.text}`);
+                return;
+            }
+
+            fragments.push(entry.text);
+        });
+
+        fragments.push(`${terminalPrompt}${terminalBuffer}`);
+
+        const normalized = fragments
+            .join(" ")
+            .replace(/\s+/g, "")
+            .trim();
+
+        return normalized || cmatrixFallbackSource;
     }
 
     function createCmatrixColumn(instance) {
         const height = instance.matrixHeight || instance.shell.clientHeight || 0;
         const fontSize = instance.matrixFontSize || 16;
         const rows = Math.max(1, Math.ceil(height / fontSize));
+        const sourceLength = Math.max(1, (instance.matrixSource || cmatrixFallbackSource).length);
 
         return {
             head: -Math.random() * rows * 1.4,
             speed: 0.55 + (Math.random() * 1.7),
             length: Math.max(6, Math.floor(rows * (0.14 + (Math.random() * 0.18)))),
-            offset: Math.floor(Math.random() * cmatrixChars.length),
+            offset: Math.floor(Math.random() * sourceLength),
         };
     }
 
@@ -437,6 +461,8 @@
             const fontSize = instance.matrixFontSize;
             const rowHeight = fontSize;
             const maxRow = Math.ceil(height / rowHeight);
+            const source = instance.matrixSource || cmatrixFallbackSource;
+            const sourceLength = Math.max(1, source.length);
 
             ctx.fillStyle = "rgba(5, 5, 5, 0.22)";
             ctx.fillRect(0, 0, width, height);
@@ -452,8 +478,8 @@
                     if (row < 0 || row > maxRow) continue;
 
                     const y = row * rowHeight;
-                    const charIndex = (column.offset + headRow + trailIndex + index) % cmatrixChars.length;
-                    const char = cmatrixChars.charAt((charIndex + cmatrixChars.length) % cmatrixChars.length);
+                    const charIndex = (column.offset + headRow + trailIndex + index) % sourceLength;
+                    const char = source.charAt((charIndex + sourceLength) % sourceLength);
 
                     if (trailIndex === 0) {
                         ctx.fillStyle = "#f5efdf";
@@ -469,7 +495,7 @@
 
                 column.head += column.speed * step;
                 if (Math.random() < 0.012 * step) {
-                    column.offset = (column.offset + 1 + Math.floor(Math.random() * 3)) % cmatrixChars.length;
+                    column.offset = (column.offset + 1 + Math.floor(Math.random() * 3)) % sourceLength;
                 }
 
                 if ((headRow - trailLength) > (maxRow + 4)) {
@@ -509,6 +535,7 @@
             ensureCmatrixLayer(instance);
             instance.shell.classList.add("is-cmatrix");
             instance.shell.scrollTop = 0;
+            instance.matrixSource = buildCmatrixSource();
             resizeCmatrixLayer(instance);
             const ctx = instance.matrixContext;
             if (ctx && instance.matrixWidth && instance.matrixHeight) {
