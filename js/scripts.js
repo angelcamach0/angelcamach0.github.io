@@ -1,42 +1,47 @@
-// Generate responsive bubble grid that fills the viewport area.
 (function () {
     const grid = document.getElementById("bubble-grid");
     if (!grid) return;
 
-    const minSize = 120; // minimum target square size in px
-    const overscan = 10; // extra cells to avoid gaps during resize
+    const minCell = 128;
+    const overscanRows = 1;
 
-    function fillGrid() {
-        const style = getComputedStyle(grid);
-        const gap = parseFloat(style.gap) || 0;
-        const w = window.innerWidth;
-        const h = window.innerHeight;
+    function syncGrid() {
+        const styles = getComputedStyle(grid);
+        const gap = parseFloat(styles.gap) || 0;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
 
-        const cols = Math.max(1, Math.floor((w + gap) / (minSize + gap)));
-        const colSize = (w - gap * (cols - 1)) / cols;
-        const rows = Math.max(1, Math.ceil((h + gap) / (colSize + gap)));
-        const needed = cols * rows + overscan;
+        const cols = Math.max(1, Math.floor((width + gap) / (minCell + gap)));
+        const cellSize = (width - gap * (cols - 1)) / cols;
+        const rows = Math.max(1, Math.ceil((height + gap) / (cellSize + gap)) + overscanRows);
+        const needed = cols * rows;
+
+        grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+        grid.style.gridAutoRows = `${cellSize}px`;
+
         const current = grid.children.length;
 
-        // Add missing bubbles
-        for (let i = current; i < needed; i++) {
-            const div = document.createElement("div");
-            div.className = "bubble";
-            grid.appendChild(div);
+        for (let index = current; index < needed; index += 1) {
+            const bubble = document.createElement("div");
+            bubble.className = "bubble";
+            grid.appendChild(bubble);
         }
 
-        // Remove extras
-        for (let i = current - 1; i >= needed; i--) {
-            grid.removeChild(grid.children[i]);
+        for (let index = current - 1; index >= needed; index -= 1) {
+            grid.removeChild(grid.children[index]);
         }
     }
 
-    // Initial render
-    fillGrid();
-    // Debounced resize handling
-    let resizeTimer = null;
-    window.addEventListener("resize", () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(fillGrid, 80);
-    });
+    let frame = null;
+
+    function requestSync() {
+        if (frame !== null) return;
+        frame = window.requestAnimationFrame(() => {
+            frame = null;
+            syncGrid();
+        });
+    }
+
+    syncGrid();
+    window.addEventListener("resize", requestSync);
 })();
