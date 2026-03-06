@@ -1,6 +1,6 @@
 (function () {
     const grid = document.getElementById("bubble-grid");
-    const catalogView = document.getElementById("catalog-view");
+    const homeView = document.getElementById("home-view");
     const titleBar = document.querySelector(".title-bar");
     const navLinks = Array.from(document.querySelectorAll(".title-bar__nav a"));
     const root = document.documentElement;
@@ -9,7 +9,7 @@
     const extraScrollScreens = 2;
 
     function getActiveView() {
-        return window.location.hash === "#catalog" ? "catalog" : "grid";
+        return window.location.hash === "#grid" ? "grid" : "home";
     }
 
     function updateNavigation(activeView) {
@@ -23,8 +23,8 @@
         const showGrid = activeView === "grid";
 
         grid.hidden = !showGrid;
-        if (catalogView) {
-            catalogView.hidden = showGrid;
+        if (homeView) {
+            homeView.hidden = showGrid;
         }
 
         updateNavigation(activeView);
