@@ -163,6 +163,9 @@ body::after {
   font-size: 1rem;
   flex: 0 0 auto;
   white-space: nowrap;
+  font-family: "Apple Chancery", "URW Chancery L", "Brush Script MT", cursive;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   color: #f6edd4;
   text-shadow:
     0 0 8px rgba(246, 237, 212, 0.85),
