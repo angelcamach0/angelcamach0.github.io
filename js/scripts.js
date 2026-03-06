@@ -34,6 +34,10 @@
     let terminalTranscript = [];
     let activeTerminalShell = null;
     let currentDirectory = "~";
+    let cmatrixActive = false;
+    let cmatrixFrame = null;
+    let cmatrixLastTime = 0;
+    const cmatrixChars = "01ARKPROJECTS[]{}<>/\\|-_=+*";
 
     function getActiveView() {
         const hash = window.location.hash.toLowerCase().replace(/^#/, "");
@@ -313,6 +317,8 @@
             view: shell.dataset.terminalView || "",
         };
 
+        ensureCmatrixLayer(instance);
+
         shell.addEventListener("pointerdown", () => {
             activeTerminalShell = shell;
             focusTerminal(instance.view || activeView);
@@ -328,6 +334,180 @@
 
         terminalInstances.push(instance);
         return instance;
+    }
+
+    function ensureCmatrixLayer(instance) {
+        if (!instance || instance.matrixLayer) return;
+
+        const layer = document.createElement("div");
+        const label = document.createElement("div");
+        const canvas = document.createElement("canvas");
+
+        layer.className = "terminal-matrix";
+        layer.dataset.terminalMatrix = "";
+        layer.setAttribute("aria-hidden", "true");
+
+        label.className = "terminal-matrix__label";
+        label.textContent = "CMATRIX - ESC TO EXIT";
+
+        canvas.className = "terminal-matrix__canvas";
+
+        layer.appendChild(canvas);
+        layer.appendChild(label);
+        instance.shell.appendChild(layer);
+
+        instance.matrixLayer = layer;
+        instance.matrixCanvas = canvas;
+        instance.matrixContext = canvas.getContext("2d");
+        instance.matrixColumns = [];
+        instance.matrixSpeeds = [];
+        instance.matrixFontSize = 16;
+        instance.matrixWidth = 0;
+        instance.matrixHeight = 0;
+        instance.matrixDpr = 1;
+    }
+
+    function resetCmatrixColumns(instance) {
+        if (!instance) return;
+
+        const width = instance.matrixWidth || instance.shell.clientWidth || 0;
+        const height = instance.matrixHeight || instance.shell.clientHeight || 0;
+        const fontSize = instance.matrixFontSize || 16;
+        const columnCount = Math.max(1, Math.floor(width / fontSize));
+
+        instance.matrixColumns = Array.from({ length: columnCount }, () => Math.random() * (height / fontSize));
+        instance.matrixSpeeds = Array.from({ length: columnCount }, () => 0.7 + (Math.random() * 1.15));
+    }
+
+    function resizeCmatrixLayer(instance) {
+        if (!instance?.matrixCanvas || !instance.matrixContext) return false;
+
+        const width = Math.max(0, instance.shell.clientWidth);
+        const height = Math.max(0, instance.shell.clientHeight);
+
+        if (!width || !height) {
+            return false;
+        }
+
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        if (width === instance.matrixWidth && height === instance.matrixHeight && dpr === instance.matrixDpr) {
+            return true;
+        }
+
+        instance.matrixWidth = width;
+        instance.matrixHeight = height;
+        instance.matrixDpr = dpr;
+        instance.matrixFontSize = Math.max(12, Math.min(22, Math.floor(Math.min(width, height) / 24)));
+        instance.matrixCanvas.width = Math.floor(width * dpr);
+        instance.matrixCanvas.height = Math.floor(height * dpr);
+        instance.matrixCanvas.style.width = `${width}px`;
+        instance.matrixCanvas.style.height = `${height}px`;
+        instance.matrixContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+        instance.matrixContext.textBaseline = "top";
+        instance.matrixContext.font = `${instance.matrixFontSize}px "Courier New", "Lucida Console", monospace`;
+
+        resetCmatrixColumns(instance);
+        return true;
+    }
+
+    function renderCmatrixFrame(deltaMs) {
+        const step = Math.max(0.75, deltaMs / 16.6667);
+
+        terminalInstances.forEach((instance) => {
+            if (!instance.matrixCanvas || !instance.matrixContext) return;
+            if (!resizeCmatrixLayer(instance)) return;
+
+            const ctx = instance.matrixContext;
+            const width = instance.matrixWidth;
+            const height = instance.matrixHeight;
+            const fontSize = instance.matrixFontSize;
+            const rowHeight = fontSize;
+
+            ctx.fillStyle = "rgba(5, 5, 5, 0.16)";
+            ctx.fillRect(0, 0, width, height);
+            ctx.font = `${fontSize}px "Courier New", "Lucida Console", monospace`;
+
+            instance.matrixColumns.forEach((position, index) => {
+                const x = index * fontSize;
+                const y = position * rowHeight;
+                const char = cmatrixChars.charAt(Math.floor(Math.random() * cmatrixChars.length));
+
+                ctx.fillStyle = "#ecffe2";
+                ctx.fillText(char, x, y);
+                ctx.fillStyle = "#6bcf5f";
+                ctx.fillText(char, x, Math.max(0, y - rowHeight));
+
+                const nextPosition = position + (instance.matrixSpeeds[index] * step);
+                if ((nextPosition * rowHeight) > height + (Math.random() * height * 0.35)) {
+                    instance.matrixColumns[index] = -Math.random() * 18;
+                    instance.matrixSpeeds[index] = 0.7 + (Math.random() * 1.15);
+                } else {
+                    instance.matrixColumns[index] = nextPosition;
+                }
+            });
+        });
+    }
+
+    function cmatrixTick(now) {
+        if (!cmatrixActive) {
+            cmatrixFrame = null;
+            cmatrixLastTime = 0;
+            return;
+        }
+
+        if (!cmatrixLastTime) {
+            cmatrixLastTime = now;
+        }
+
+        const deltaMs = Math.min(48, now - cmatrixLastTime || 16.6667);
+        cmatrixLastTime = now;
+        renderCmatrixFrame(deltaMs);
+        cmatrixFrame = window.requestAnimationFrame(cmatrixTick);
+    }
+
+    function startCmatrix() {
+        if (cmatrixActive) {
+            appendTerminalOutput("cmatrix: already running");
+            return;
+        }
+
+        cmatrixActive = true;
+        cmatrixLastTime = 0;
+
+        terminalInstances.forEach((instance) => {
+            ensureCmatrixLayer(instance);
+            instance.shell.classList.add("is-cmatrix");
+            resizeCmatrixLayer(instance);
+            const ctx = instance.matrixContext;
+            if (ctx && instance.matrixWidth && instance.matrixHeight) {
+                ctx.fillStyle = "#050505";
+                ctx.fillRect(0, 0, instance.matrixWidth, instance.matrixHeight);
+            }
+        });
+
+        appendTerminalOutput("cmatrix: press Esc to exit");
+        if (cmatrixFrame !== null) {
+            window.cancelAnimationFrame(cmatrixFrame);
+        }
+        cmatrixFrame = window.requestAnimationFrame(cmatrixTick);
+    }
+
+    function stopCmatrix() {
+        if (!cmatrixActive) return;
+
+        cmatrixActive = false;
+        cmatrixLastTime = 0;
+        if (cmatrixFrame !== null) {
+            window.cancelAnimationFrame(cmatrixFrame);
+            cmatrixFrame = null;
+        }
+
+        terminalInstances.forEach((instance) => {
+            instance.shell.classList.remove("is-cmatrix");
+            if (instance.matrixContext && instance.matrixWidth && instance.matrixHeight) {
+                instance.matrixContext.clearRect(0, 0, instance.matrixWidth, instance.matrixHeight);
+            }
+        });
     }
 
     function renderView() {
@@ -572,6 +752,7 @@
                     "rm",
                     "tree",
                     "echo",
+                    "cmatrix",
                     "help",
                 ].join("\n"));
                 break;
@@ -654,6 +835,9 @@
             case "tree":
                 appendTerminalOutput(buildTreeOutput());
                 break;
+            case "cmatrix":
+                startCmatrix();
+                break;
             case "echo": {
                 const assignment = parseEchoAssignment(trimmed);
                 if (!assignment) {
@@ -677,6 +861,25 @@
     function handleTerminalKeydown(event) {
         if (!isTerminalInputActive()) return;
         if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+
+        if (cmatrixActive) {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                stopCmatrix();
+                return;
+            }
+
+            if (
+                event.key === "Enter" ||
+                event.key === "Backspace" ||
+                event.key === "Tab" ||
+                event.key.length === 1
+            ) {
+                stopCmatrix();
+            } else {
+                return;
+            }
+        }
 
         if (event.key === "Backspace") {
             event.preventDefault();
@@ -1231,6 +1434,9 @@
         requestSync();
         resetLetterLayout();
         syncTerminalScroll();
+        if (cmatrixActive) {
+            terminalInstances.forEach((instance) => resizeCmatrixLayer(instance));
+        }
     });
     window.addEventListener("hashchange", renderView);
     document.addEventListener("keydown", handleTerminalKeydown);

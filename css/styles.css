@@ -218,6 +218,7 @@ body::-webkit-scrollbar {
 }
 
 .terminal-shell {
+  position: relative;
   min-height: calc(100vh - var(--title-height) - 80px);
   padding: clamp(18px, 2.5vw, 28px);
   background: #050505;
@@ -232,6 +233,11 @@ body::-webkit-scrollbar {
   overflow-y: auto;
   scrollbar-width: none;
   cursor: text;
+}
+
+.terminal-shell.is-cmatrix .terminal-history,
+.terminal-shell.is-cmatrix .terminal-line {
+  visibility: hidden;
 }
 
 .terminal-shell::-webkit-scrollbar {
@@ -261,6 +267,8 @@ body::-webkit-scrollbar {
 }
 
 .terminal-history {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -272,10 +280,46 @@ body::-webkit-scrollbar {
 
 .terminal-line,
 .terminal-entry {
+  position: relative;
+  z-index: 1;
   display: block;
   min-height: 1.55em;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.terminal-matrix {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 16px 18px;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+  overflow: hidden;
+}
+
+.terminal-shell.is-cmatrix .terminal-matrix {
+  opacity: 1;
+}
+
+.terminal-matrix__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.terminal-matrix__label {
+  position: relative;
+  z-index: 1;
+  color: rgba(239, 226, 198, 0.72);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
 }
 
 .terminal-prompt {
