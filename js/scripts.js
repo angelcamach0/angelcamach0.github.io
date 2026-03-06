@@ -1,6 +1,10 @@
 (function () {
     const grid = document.getElementById("bubble-grid");
     const homeView = document.getElementById("home-view");
+    const terminalView = document.getElementById("terminal-view");
+    const terminalShell = document.getElementById("terminal-shell");
+    const terminalHistory = document.getElementById("terminal-history");
+    const terminalInput = document.getElementById("terminal-input");
     const homeStage = document.getElementById("home-title");
     const welcomeLetters = document.getElementById("welcome-letters");
     const titleBar = document.querySelector(".title-bar");
@@ -21,9 +25,13 @@
     let lastPointerSample = null;
     let physicsFrame = null;
     let physicsLastTime = 0;
+    let terminalBuffer = "";
 
     function getActiveView() {
-        return window.location.hash === "#grid" ? "grid" : "home";
+        const hash = window.location.hash.toLowerCase();
+        if (hash === "#grid") return "grid";
+        if (hash === "#terminal") return "terminal";
+        return "home";
     }
 
     function updateNavigation(viewName) {
@@ -32,26 +40,37 @@
         });
     }
 
+    function getEnteringView(viewName) {
+        if (viewName === "grid") return grid;
+        if (viewName === "terminal") return terminalView;
+        return homeView;
+    }
+
     function renderView() {
         const nextView = getActiveView();
-        const showGrid = nextView === "grid";
-        const enteringView = showGrid ? grid : homeView;
-        const entranceClass = showGrid ? "is-entering-from-right" : "is-entering-from-left";
+        const enteringView = getEnteringView(nextView);
+        const entranceClass = nextView === "home" ? "is-entering-from-left" : "is-entering-from-right";
 
-        grid.hidden = !showGrid;
+        grid.hidden = nextView !== "grid";
         if (homeView) {
-            homeView.hidden = showGrid;
+            homeView.hidden = nextView !== "home";
+        }
+        if (terminalView) {
+            terminalView.hidden = nextView !== "terminal";
         }
 
         updateNavigation(nextView);
 
-        if (showGrid) {
+        if (nextView === "grid") {
             requestSync();
-        } else {
+        } else if (nextView === "home") {
             requestAnimationFrame(resetLetterLayout);
+        } else if (nextView === "terminal") {
+            requestAnimationFrame(focusTerminal);
         }
 
         if (hasRendered && nextView !== activeView && enteringView) {
+            window.scrollTo(0, 0);
             enteringView.classList.remove("is-entering-from-right", "is-entering-from-left");
             void enteringView.offsetWidth;
             enteringView.classList.add(entranceClass);
@@ -62,6 +81,76 @@
 
         activeView = nextView;
         hasRendered = true;
+    }
+
+    function focusTerminal() {
+        if (!terminalShell || terminalView.hidden) return;
+        terminalShell.focus({ preventScroll: true });
+        syncTerminalScroll();
+    }
+
+    function syncTerminalScroll() {
+        if (!terminalShell) return;
+        terminalShell.scrollTop = terminalShell.scrollHeight;
+    }
+
+    function renderTerminalInput() {
+        if (!terminalInput) return;
+        terminalInput.textContent = terminalBuffer;
+        syncTerminalScroll();
+    }
+
+    function appendTerminalEntry(command) {
+        if (!terminalHistory) return;
+
+        const entry = document.createElement("div");
+        const prompt = document.createElement("span");
+        const content = document.createElement("span");
+
+        entry.className = "terminal-entry";
+        prompt.className = "terminal-prompt";
+        content.className = "terminal-command";
+
+        prompt.textContent = "friend@thearkprojects:~$";
+        content.textContent = command;
+
+        entry.appendChild(prompt);
+        entry.appendChild(content);
+        terminalHistory.appendChild(entry);
+        syncTerminalScroll();
+    }
+
+    function handleTerminalKeydown(event) {
+        if (activeView !== "terminal") return;
+        if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+
+        if (event.key === "Backspace") {
+            event.preventDefault();
+            terminalBuffer = terminalBuffer.slice(0, -1);
+            renderTerminalInput();
+            return;
+        }
+
+        if (event.key === "Enter") {
+            event.preventDefault();
+            appendTerminalEntry(terminalBuffer);
+            terminalBuffer = "";
+            renderTerminalInput();
+            return;
+        }
+
+        if (event.key === "Tab") {
+            event.preventDefault();
+            terminalBuffer += "    ";
+            renderTerminalInput();
+            return;
+        }
+
+        if (event.key.length === 1) {
+            event.preventDefault();
+            terminalBuffer += event.key;
+            renderTerminalInput();
+        }
     }
 
     function showCursorInvert(clientX, clientY) {
@@ -450,12 +539,14 @@
     }
 
     renderView();
+    renderTerminalInput();
     buildWelcomeLetters();
     window.addEventListener("resize", () => {
         requestSync();
         resetLetterLayout();
     });
     window.addEventListener("hashchange", renderView);
+    document.addEventListener("keydown", handleTerminalKeydown);
     document.addEventListener("pointermove", (event) => {
         if (!event.pointerType || event.pointerType === "mouse") {
             showCursorInvert(event.clientX, event.clientY);
@@ -470,4 +561,19 @@
             hideCursorInvert();
         }
     });
+    if (terminalShell) {
+        terminalShell.addEventListener("pointerdown", () => {
+            if (activeView === "terminal") {
+                focusTerminal();
+            }
+        });
+        terminalShell.addEventListener("paste", (event) => {
+            if (activeView !== "terminal") return;
+            const pasted = event.clipboardData?.getData("text");
+            if (!pasted) return;
+            event.preventDefault();
+            terminalBuffer += pasted.replace(/\r/g, "");
+            renderTerminalInput();
+        });
+    }
 })();

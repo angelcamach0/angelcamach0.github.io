@@ -168,6 +168,84 @@ body::-webkit-scrollbar {
   background: #e9e0cf;
 }
 
+.terminal-view {
+  min-height: calc(100vh - var(--title-height));
+  padding: clamp(24px, 4vw, 40px);
+  background: #e9e0cf;
+}
+
+.terminal-shell {
+  min-height: calc(100vh - var(--title-height) - 80px);
+  padding: clamp(18px, 2.5vw, 28px);
+  background: #050505;
+  border: 2px solid var(--outline);
+  box-shadow: 0 20px 42px rgba(0, 0, 0, 0.18);
+  color: var(--outline);
+  font-family: "Courier New", "Lucida Console", monospace;
+  font-size: clamp(0.95rem, 1.15vw, 1.1rem);
+  line-height: 1.55;
+  outline: none;
+  overflow-y: auto;
+  cursor: text;
+}
+
+.terminal-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 1.55em;
+  margin-bottom: 0.35rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.terminal-line,
+.terminal-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-height: 1.55em;
+}
+
+.terminal-prompt {
+  flex: 0 0 auto;
+  color: #efe2c6;
+}
+
+.terminal-command,
+.terminal-input {
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.terminal-input {
+  display: inline-block;
+  min-height: 1.2em;
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 0.72em;
+  height: 1em;
+  margin-left: 0.05em;
+  background: var(--outline);
+  vertical-align: text-bottom;
+  animation: terminal-cursor-blink 1s steps(1, end) infinite;
+}
+
+@keyframes terminal-cursor-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
 .catalog-view__copy {
   max-width: 58rem;
   padding-top: clamp(12px, 5vw, 48px);
@@ -329,6 +407,15 @@ body::-webkit-scrollbar {
 
   .catalog-view {
     padding: 22px 16px 28px;
+  }
+
+  .terminal-view {
+    padding: 16px 12px 20px;
+  }
+
+  .terminal-shell {
+    min-height: calc(100vh - var(--title-height) - 36px);
+    padding: 16px 14px;
   }
 
   .welcome-stage {

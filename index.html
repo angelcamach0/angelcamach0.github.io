@@ -4,14 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dynamic Bubbles</title>
-    <link rel="stylesheet" href="css/styles.css?v=grid16" />
+    <link rel="stylesheet" href="css/styles.css?v=grid18" />
 </head>
 <body>
     <header class="title-bar" id="top">
         <a class="title-bar__brand" href="#home">The Ark Projects</a>
         <nav class="title-bar__nav" aria-label="Primary navigation">
             <a href="#grid" data-view="grid">Grid</a>
-            <a href="#archive" data-view="archive">Archive</a>
+            <a href="#terminal" data-view="terminal">Terminal</a>
         </nav>
     </header>
     <main class="page-views">
@@ -25,7 +25,18 @@
                 <p>This is a repository of random programs, scripts and documents. No particular organization has been implemented yet.</p>
             </div>
         </section>
+        <section id="terminal-view" class="terminal-view page-view" aria-labelledby="terminal-title" hidden>
+            <div id="terminal-shell" class="terminal-shell" tabindex="0" role="textbox" aria-multiline="true" aria-labelledby="terminal-title">
+                <h1 id="terminal-title" class="sr-only">Terminal</h1>
+                <div id="terminal-history" class="terminal-history" aria-live="polite"></div>
+                <div class="terminal-line">
+                    <span class="terminal-prompt">friend@thearkprojects:~$</span>
+                    <span id="terminal-input" class="terminal-input"></span>
+                    <span class="terminal-cursor" aria-hidden="true"></span>
+                </div>
+            </div>
+        </section>
     </main>
-    <script src="js/scripts.js?v=grid17"></script>
+    <script src="js/scripts.js?v=grid18"></script>
 </body>
 </html>
