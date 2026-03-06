@@ -2,8 +2,13 @@
     const grid = document.getElementById("bubble-grid");
     if (!grid) return;
 
-    const minCell = 128;
     const overscanRows = 1;
+
+    function getColumnCount(width) {
+        if (width < 560) return 1;
+        if (width < 900) return 2;
+        return Math.max(3, Math.min(7, Math.round(width / 320)));
+    }
 
     function syncGrid() {
         const styles = getComputedStyle(grid);
@@ -11,7 +16,7 @@
         const width = window.innerWidth;
         const height = window.innerHeight;
 
-        const cols = Math.max(1, Math.floor((width + gap) / (minCell + gap)));
+        const cols = getColumnCount(width);
         const cellSize = (width - gap * (cols - 1)) / cols;
         const rows = Math.max(1, Math.ceil((height + gap) / (cellSize + gap)) + overscanRows);
         const needed = cols * rows;
