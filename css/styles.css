@@ -383,6 +383,11 @@ body::-webkit-scrollbar {
   padding-top: clamp(4px, 1vw, 16px);
 }
 
+#home-view .catalog-view__copy {
+  min-height: clamp(420px, 72vh, 640px);
+  padding-top: 0;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -400,6 +405,13 @@ body::-webkit-scrollbar {
   width: min(100%, 72rem);
   min-height: clamp(170px, 24vw, 280px);
   margin: 0 0 18px;
+}
+
+#home-view .welcome-stage {
+  z-index: 1;
+  width: min(100%, 66rem);
+  min-height: clamp(190px, 26vw, 320px);
+  margin: 0;
 }
 
 .welcome-stage__letters {
@@ -451,6 +463,14 @@ body::-webkit-scrollbar {
   font-family: "Helvetica Neue", Arial, sans-serif;
   font-size: clamp(1rem, 1.5vw, 1.2rem);
   line-height: 1.65;
+}
+
+#home-description {
+  position: absolute;
+  top: clamp(12rem, 30vw, 18rem);
+  left: 0;
+  z-index: 2;
+  max-width: clamp(18rem, 32vw, 34rem);
 }
 
 .bubble {
@@ -558,6 +578,19 @@ body::-webkit-scrollbar {
   .catalog-view__copy {
     max-width: 58rem;
     padding-top: 0;
+  }
+
+  #home-view .catalog-view__copy {
+    min-height: 0;
+  }
+
+  #home-description {
+    position: static;
+    top: auto;
+    left: auto;
+    z-index: auto;
+    max-width: 34rem;
+    margin-top: 12px;
   }
 
   .terminal-shell--sidebar {
