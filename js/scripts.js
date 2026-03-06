@@ -215,6 +215,7 @@
         const mimeType = getTileMimeType(tile);
         if (mimeType.startsWith("image/")) return "image";
         if (mimeType === "application/pdf") return "pdf";
+        if (mimeType === "text/markdown") return "markdown";
         if (tile.type === "code") return "code";
         if (
             mimeType.startsWith("text/") ||
@@ -227,20 +228,149 @@
         return "none";
     }
 
+    function escapeHtml(value) {
+        return String(value || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function renderInlineMarkdown(text) {
+        return escapeHtml(text)
+            .replace(/`([^`]+)`/g, "<code>$1</code>")
+            .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+            .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    }
+
+    function renderMarkdownPreviewHtml(markdown) {
+        const lines = String(markdown || "").replace(/\r/g, "").split("\n").slice(0, 120);
+        const html = [];
+        let paragraph = [];
+        let listType = null;
+        let listItems = [];
+        let inCodeBlock = false;
+        let codeLines = [];
+
+        function flushParagraph() {
+            if (!paragraph.length) return;
+            html.push(`<p>${renderInlineMarkdown(paragraph.join(" "))}</p>`);
+            paragraph = [];
+        }
+
+        function flushList() {
+            if (!listType || !listItems.length) return;
+            html.push(`<${listType}>${listItems.map((item) => `<li>${renderInlineMarkdown(item)}</li>`).join("")}</${listType}>`);
+            listType = null;
+            listItems = [];
+        }
+
+        function flushCodeBlock() {
+            if (!codeLines.length) return;
+            html.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+            codeLines = [];
+        }
+
+        lines.forEach((rawLine) => {
+            const line = rawLine.trimEnd();
+            const trimmed = line.trim();
+
+            if (trimmed.startsWith("```")) {
+                flushParagraph();
+                flushList();
+                if (inCodeBlock) {
+                    flushCodeBlock();
+                    inCodeBlock = false;
+                } else {
+                    inCodeBlock = true;
+                }
+                return;
+            }
+
+            if (inCodeBlock) {
+                codeLines.push(line);
+                return;
+            }
+
+            if (!trimmed) {
+                flushParagraph();
+                flushList();
+                return;
+            }
+
+            const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
+            if (headingMatch) {
+                flushParagraph();
+                flushList();
+                const level = headingMatch[1].length;
+                html.push(`<h${level}>${renderInlineMarkdown(headingMatch[2])}</h${level}>`);
+                return;
+            }
+
+            const orderedMatch = trimmed.match(/^\d+\.\s+(.*)$/);
+            if (orderedMatch) {
+                flushParagraph();
+                if (listType && listType !== "ol") {
+                    flushList();
+                }
+                listType = "ol";
+                listItems.push(orderedMatch[1]);
+                return;
+            }
+
+            const unorderedMatch = trimmed.match(/^[-*]\s+(.*)$/);
+            if (unorderedMatch) {
+                flushParagraph();
+                if (listType && listType !== "ul") {
+                    flushList();
+                }
+                listType = "ul";
+                listItems.push(unorderedMatch[1]);
+                return;
+            }
+
+            const quoteMatch = trimmed.match(/^>\s+(.*)$/);
+            if (quoteMatch) {
+                flushParagraph();
+                flushList();
+                html.push(`<blockquote>${renderInlineMarkdown(quoteMatch[1])}</blockquote>`);
+                return;
+            }
+
+            paragraph.push(trimmed);
+        });
+
+        flushParagraph();
+        flushList();
+        if (inCodeBlock) {
+            flushCodeBlock();
+        }
+
+        return html.join("") || "<p>Preview unavailable.</p>";
+    }
+
     function buildTextPreviewSnippet(text, mode) {
         const lines = String(text || "")
             .replace(/\r/g, "")
             .split("\n")
-            .map((line) => mode === "code" ? line.slice(0, 88) : line.trim())
-            .filter((line, index, source) => line.length > 0 || (mode === "code" && index < source.length));
-        const previewLines = lines.slice(0, mode === "code" ? 8 : 6);
-        const snippet = previewLines.join("\n").trim();
+            .map((line) => mode === "code" ? line.slice(0, 120) : line);
+        const previewLines = lines.slice(0, mode === "code" ? 80 : 60);
+        let snippet = previewLines.join("\n").trim();
 
         if (!snippet) {
             return mode === "code" ? "// preview unavailable" : "Preview unavailable.";
         }
 
-        return snippet.length > 420 ? `${snippet.slice(0, 420).trimEnd()}…` : snippet;
+        if (snippet.length > 5000) {
+            snippet = `${snippet.slice(0, 5000).trimEnd()}\n...`;
+        }
+
+        if (lines.length > previewLines.length) {
+            snippet = `${snippet}\n...`;
+        }
+
+        return snippet;
     }
 
     function compareTiles(left, right) {
@@ -1684,6 +1814,7 @@
         bubble.classList.remove("bubble--content", "bubble--empty");
         bubble.dataset.tileId = "__terminal__";
         bubble.dataset.tileType = "terminal";
+        bubble.dataset.previewMode = "none";
         clearBubbleAction(bubble);
 
         let shell = bubble.querySelector("[data-terminal-shell]");
@@ -1777,6 +1908,12 @@
                 return;
             }
 
+            const previewMode = bubble.dataset.previewMode || "none";
+            const previewIsScrollable = previewMode === "text" || previewMode === "code" || previewMode === "markdown";
+            if (previewIsScrollable && event.target instanceof HTMLElement && event.target.closest(".bubble__preview")) {
+                return;
+            }
+
             openTile(tile);
         };
         bubble.onkeydown = (event) => {
@@ -1844,6 +1981,14 @@
             return;
         }
 
+        if (cached.mode === "markdown") {
+            const markdown = document.createElement("div");
+            markdown.className = "bubble__preview-markdown";
+            markdown.innerHTML = cached.html;
+            previewEl.appendChild(markdown);
+            return;
+        }
+
         const snippet = document.createElement("pre");
         snippet.className = "bubble__preview-text";
         snippet.textContent = cached.text;
@@ -1893,7 +2038,8 @@
                 tilePreviewCache.set(tile.id, {
                     state: "ready",
                     mode,
-                    text: buildTextPreviewSnippet(text, mode),
+                    text: mode === "markdown" ? "" : buildTextPreviewSnippet(text, mode),
+                    html: mode === "markdown" ? renderMarkdownPreviewHtml(text) : "",
                 });
                 requestSync();
             })
@@ -1939,6 +2085,7 @@
         bubble.dataset.tileType = tile.type;
         bubble.dataset.repo = tile.repo;
         bubble.dataset.path = tile.path;
+        bubble.dataset.previewMode = getTilePreviewMode(tile);
         attachBubbleAction(bubble, tile);
 
         if (label) {
