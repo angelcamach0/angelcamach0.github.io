@@ -24,11 +24,30 @@
     function applyBubbleSpan(bubble, cols) {
         const colSpan = Math.max(1, Math.min(cols, Number(bubble.dataset.colSpan) || 1));
         const rowSpan = Math.max(1, Number(bubble.dataset.rowSpan) || 1);
+        const cellSize = Number(grid.dataset.cellSize) || 0;
+        const label = bubble.querySelector(".bubble__label");
+        const labelSize = Math.max(28, Math.min(220, cellSize * Math.min(colSpan, rowSpan) * 0.38));
 
         bubble.dataset.colSpan = String(colSpan);
         bubble.dataset.rowSpan = String(rowSpan);
         bubble.style.gridColumn = `auto / span ${colSpan}`;
         bubble.style.gridRow = `auto / span ${rowSpan}`;
+
+        if (label) {
+            label.style.fontSize = `${labelSize}px`;
+        }
+    }
+
+    function getAlphabetLabel(index) {
+        let value = index;
+        let label = "";
+
+        do {
+            label = String.fromCharCode(65 + (value % 26)) + label;
+            value = Math.floor(value / 26) - 1;
+        } while (value >= 0);
+
+        return label;
     }
 
     function attachResize(bubble, handle) {
@@ -75,16 +94,22 @@
 
     function createBubble(cols) {
         const bubble = document.createElement("article");
+        const label = document.createElement("span");
         const handle = document.createElement("button");
 
         bubble.className = "bubble";
         bubble.dataset.colSpan = "1";
         bubble.dataset.rowSpan = "1";
 
+        label.className = "bubble__label";
+        label.textContent = "A";
+        label.setAttribute("aria-hidden", "true");
+
         handle.className = "bubble__handle";
         handle.type = "button";
         handle.setAttribute("aria-label", "Resize bubble");
 
+        bubble.appendChild(label);
         bubble.appendChild(handle);
         attachResize(bubble, handle);
         applyBubbleSpan(bubble, cols);
@@ -100,6 +125,7 @@
 
         grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
         grid.style.gridAutoRows = `${cellSize}px`;
+        grid.dataset.cellSize = String(cellSize);
 
         Array.from(grid.children).forEach((bubble) => {
             applyBubbleSpan(bubble, cols);
@@ -114,6 +140,13 @@
         for (let index = current - 1; index >= needed; index -= 1) {
             grid.removeChild(grid.children[index]);
         }
+
+        Array.from(grid.children).forEach((bubble, index) => {
+            const label = bubble.querySelector(".bubble__label");
+            if (label) {
+                label.textContent = getAlphabetLabel(index);
+            }
+        });
     }
 
     let frame = null;
