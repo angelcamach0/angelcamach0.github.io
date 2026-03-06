@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dynamic Bubbles</title>
-    <link rel="stylesheet" href="css/styles.css?v=grid19" />
+    <link rel="stylesheet" href="css/styles.css?v=grid20" />
 </head>
 <body>
     <header class="title-bar" id="top">
@@ -17,26 +17,39 @@
     <main class="page-views">
         <section id="bubble-grid" class="page-view" aria-label="dynamic bubble grid"></section>
         <section id="home-view" class="catalog-view page-view" aria-labelledby="home-title" hidden>
-            <div class="catalog-view__copy">
-                <h1 id="home-title" class="welcome-stage" aria-label="Welcome">
-                    <span id="welcome-letters" class="welcome-stage__letters" aria-hidden="true"></span>
-                    <span class="sr-only">Welcome</span>
-                </h1>
-                <p>This is a repository of random programs, scripts and documents. No particular organization has been implemented yet.</p>
+            <div class="catalog-view__layout">
+                <aside class="catalog-view__terminal">
+                    <div class="terminal-shell terminal-shell--sidebar" data-terminal-shell data-terminal-view="home" tabindex="0" role="textbox" aria-multiline="true" aria-labelledby="home-terminal-title">
+                        <h2 id="home-terminal-title" class="sr-only">Home terminal</h2>
+                        <div class="terminal-history" data-terminal-history aria-live="polite"></div>
+                        <div class="terminal-line">
+                            <span class="terminal-prompt">friend@thearkprojects:~$</span>
+                            <span class="terminal-input" data-terminal-input></span>
+                            <span class="terminal-cursor" aria-hidden="true"></span>
+                        </div>
+                    </div>
+                </aside>
+                <div class="catalog-view__copy">
+                    <h1 id="home-title" class="welcome-stage" aria-label="Welcome">
+                        <span id="welcome-letters" class="welcome-stage__letters" aria-hidden="true"></span>
+                        <span class="sr-only">Welcome</span>
+                    </h1>
+                    <p>This is a repository of random programs, scripts and documents. No particular organization has been implemented yet.</p>
+                </div>
             </div>
         </section>
         <section id="terminal-view" class="terminal-view page-view" aria-labelledby="terminal-title" hidden>
-            <div id="terminal-shell" class="terminal-shell" tabindex="0" role="textbox" aria-multiline="true" aria-labelledby="terminal-title">
+            <div class="terminal-shell terminal-shell--full" data-terminal-shell data-terminal-view="terminal" tabindex="0" role="textbox" aria-multiline="true" aria-labelledby="terminal-title">
                 <h1 id="terminal-title" class="sr-only">Terminal</h1>
-                <div id="terminal-history" class="terminal-history" aria-live="polite"></div>
+                <div class="terminal-history" data-terminal-history aria-live="polite"></div>
                 <div class="terminal-line">
                     <span class="terminal-prompt">friend@thearkprojects:~$</span>
-                    <span id="terminal-input" class="terminal-input"></span>
+                    <span class="terminal-input" data-terminal-input></span>
                     <span class="terminal-cursor" aria-hidden="true"></span>
                 </div>
             </div>
         </section>
     </main>
-    <script src="js/scripts.js?v=grid19"></script>
+    <script src="js/scripts.js?v=grid20"></script>
 </body>
 </html>

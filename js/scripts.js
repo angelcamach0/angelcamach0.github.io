@@ -2,13 +2,16 @@
     const grid = document.getElementById("bubble-grid");
     const homeView = document.getElementById("home-view");
     const terminalView = document.getElementById("terminal-view");
-    const terminalShell = document.getElementById("terminal-shell");
-    const terminalHistory = document.getElementById("terminal-history");
-    const terminalInput = document.getElementById("terminal-input");
     const homeStage = document.getElementById("home-title");
     const welcomeLetters = document.getElementById("welcome-letters");
     const titleBar = document.querySelector(".title-bar");
     const navLinks = Array.from(document.querySelectorAll(".title-bar__nav a"));
+    const terminalInstances = Array.from(document.querySelectorAll("[data-terminal-shell]")).map((shell) => ({
+        shell,
+        history: shell.querySelector("[data-terminal-history]"),
+        input: shell.querySelector("[data-terminal-input]"),
+        view: shell.dataset.terminalView || "",
+    }));
     const root = document.documentElement;
     if (!grid) return;
 
@@ -27,6 +30,8 @@
     let physicsFrame = null;
     let physicsLastTime = 0;
     let terminalBuffer = "";
+    let terminalTranscript = [];
+    let activeTerminalShell = null;
 
     function getActiveView() {
         const hash = window.location.hash.toLowerCase();
@@ -45,6 +50,14 @@
         if (viewName === "grid") return grid;
         if (viewName === "terminal") return terminalView;
         return homeView;
+    }
+
+    function getPreferredTerminalInstance(viewName) {
+        return terminalInstances.find((instance) => instance.view === viewName) || terminalInstances[0] || null;
+    }
+
+    function isTerminalInstanceVisible(instance) {
+        return Boolean(instance && instance.shell && !instance.shell.closest("[hidden]"));
     }
 
     function renderView() {
@@ -66,8 +79,9 @@
             requestSync();
         } else if (nextView === "home") {
             requestAnimationFrame(resetLetterLayout);
+            requestAnimationFrame(() => focusTerminal("home"));
         } else if (nextView === "terminal") {
-            requestAnimationFrame(focusTerminal);
+            requestAnimationFrame(() => focusTerminal("terminal"));
         }
 
         if (hasRendered && nextView !== activeView && enteringView) {
@@ -84,51 +98,87 @@
         hasRendered = true;
     }
 
-    function focusTerminal() {
-        if (!terminalShell || terminalView.hidden) return;
-        terminalShell.focus({ preventScroll: true });
+    function focusTerminal(viewName = activeView) {
+        const instance = getPreferredTerminalInstance(viewName) || terminalInstances.find(isTerminalInstanceVisible);
+        if (!isTerminalInstanceVisible(instance)) return;
+
+        activeTerminalShell = instance.shell;
+        try {
+            instance.shell.focus({ preventScroll: true });
+        } catch (error) {
+            instance.shell.focus();
+        }
         syncTerminalScroll();
     }
 
     function syncTerminalScroll() {
-        if (!terminalShell) return;
-        terminalShell.scrollTop = terminalShell.scrollHeight;
+        terminalInstances.forEach((instance) => {
+            instance.shell.scrollTop = instance.shell.scrollHeight;
+        });
     }
 
-    function renderTerminalInput() {
-        if (!terminalInput) return;
-        terminalInput.textContent = terminalBuffer;
+    function renderTerminal() {
+        terminalInstances.forEach((instance) => {
+            if (!instance.history || !instance.input) return;
+
+            instance.history.textContent = "";
+
+            terminalTranscript.forEach((entry) => {
+                if (entry.type === "command") {
+                    const line = document.createElement("div");
+                    const prompt = document.createElement("span");
+                    const content = document.createElement("span");
+
+                    line.className = "terminal-entry";
+                    prompt.className = "terminal-prompt";
+                    content.className = "terminal-command";
+                    prompt.textContent = terminalPrompt;
+                    content.textContent = entry.text;
+                    line.appendChild(prompt);
+                    line.appendChild(content);
+                    instance.history.appendChild(line);
+                    return;
+                }
+
+                const output = document.createElement("div");
+                output.className = "terminal-output";
+                output.textContent = entry.text;
+                instance.history.appendChild(output);
+            });
+
+            instance.input.textContent = terminalBuffer;
+        });
+
         syncTerminalScroll();
     }
 
     function appendTerminalEntry(command) {
-        if (!terminalHistory) return;
-
-        const entry = document.createElement("div");
-        const prompt = document.createElement("span");
-        const content = document.createElement("span");
-
-        entry.className = "terminal-entry";
-        prompt.className = "terminal-prompt";
-        content.className = "terminal-command";
-
-        prompt.textContent = terminalPrompt;
-        content.textContent = command;
-
-        entry.appendChild(prompt);
-        entry.appendChild(content);
-        terminalHistory.appendChild(entry);
-        syncTerminalScroll();
+        terminalTranscript.push({
+            type: "command",
+            text: command,
+        });
+        renderTerminal();
     }
 
     function appendTerminalOutput(text) {
-        if (!terminalHistory) return;
+        terminalTranscript.push({
+            type: "output",
+            text,
+        });
+        renderTerminal();
+    }
 
-        const output = document.createElement("div");
-        output.className = "terminal-output";
-        output.textContent = text;
-        terminalHistory.appendChild(output);
-        syncTerminalScroll();
+    function clearTerminalHistory() {
+        terminalTranscript = [];
+        renderTerminal();
+    }
+
+    function isTerminalInputActive() {
+        return Boolean(
+            activeTerminalShell &&
+            document.activeElement === activeTerminalShell &&
+            !activeTerminalShell.closest("[hidden]")
+        );
     }
 
     function runTerminalCommand(rawCommand) {
@@ -153,9 +203,7 @@
                 ].join("\n"));
                 break;
             case "clear":
-                if (terminalHistory) {
-                    terminalHistory.textContent = "";
-                }
+                clearTerminalHistory();
                 break;
             case "home":
                 window.location.hash = "#home";
@@ -194,13 +242,13 @@
     }
 
     function handleTerminalKeydown(event) {
-        if (activeView !== "terminal") return;
+        if (!isTerminalInputActive()) return;
         if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
 
         if (event.key === "Backspace") {
             event.preventDefault();
             terminalBuffer = terminalBuffer.slice(0, -1);
-            renderTerminalInput();
+            renderTerminal();
             return;
         }
 
@@ -209,21 +257,21 @@
             appendTerminalEntry(terminalBuffer);
             runTerminalCommand(terminalBuffer);
             terminalBuffer = "";
-            renderTerminalInput();
+            renderTerminal();
             return;
         }
 
         if (event.key === "Tab") {
             event.preventDefault();
             terminalBuffer += "    ";
-            renderTerminalInput();
+            renderTerminal();
             return;
         }
 
         if (event.key.length === 1) {
             event.preventDefault();
             terminalBuffer += event.key;
-            renderTerminalInput();
+            renderTerminal();
         }
     }
 
@@ -613,11 +661,12 @@
     }
 
     renderView();
-    renderTerminalInput();
+    renderTerminal();
     buildWelcomeLetters();
     window.addEventListener("resize", () => {
         requestSync();
         resetLetterLayout();
+        syncTerminalScroll();
     });
     window.addEventListener("hashchange", renderView);
     document.addEventListener("keydown", handleTerminalKeydown);
@@ -635,19 +684,18 @@
             hideCursorInvert();
         }
     });
-    if (terminalShell) {
-        terminalShell.addEventListener("pointerdown", () => {
-            if (activeView === "terminal") {
-                focusTerminal();
-            }
+    terminalInstances.forEach((instance) => {
+        instance.shell.addEventListener("pointerdown", () => {
+            activeTerminalShell = instance.shell;
+            focusTerminal(instance.view || activeView);
         });
-        terminalShell.addEventListener("paste", (event) => {
-            if (activeView !== "terminal") return;
+        instance.shell.addEventListener("paste", (event) => {
+            if (!isTerminalInputActive()) return;
             const pasted = event.clipboardData?.getData("text");
             if (!pasted) return;
             event.preventDefault();
             terminalBuffer += pasted.replace(/\r/g, "");
-            renderTerminalInput();
+            renderTerminal();
         });
-    }
+    });
 })();
