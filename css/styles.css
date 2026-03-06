@@ -219,6 +219,13 @@ body::-webkit-scrollbar {
   word-break: break-word;
 }
 
+.terminal-output {
+  min-height: 1.55em;
+  color: #d7c7a4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .terminal-input {
   display: inline-block;
   min-height: 1.2em;

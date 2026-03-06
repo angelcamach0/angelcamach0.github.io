@@ -13,6 +13,7 @@
     if (!grid) return;
 
     const extraScrollScreens = 2;
+    const terminalPrompt = "friend@thearkprojects:~$";
     const welcomeWord = "Welcome";
     const welcomeBodies = [];
     const gravity = 2200;
@@ -111,13 +112,85 @@
         prompt.className = "terminal-prompt";
         content.className = "terminal-command";
 
-        prompt.textContent = "friend@thearkprojects:~$";
+        prompt.textContent = terminalPrompt;
         content.textContent = command;
 
         entry.appendChild(prompt);
         entry.appendChild(content);
         terminalHistory.appendChild(entry);
         syncTerminalScroll();
+    }
+
+    function appendTerminalOutput(text) {
+        if (!terminalHistory) return;
+
+        const output = document.createElement("div");
+        output.className = "terminal-output";
+        output.textContent = text;
+        terminalHistory.appendChild(output);
+        syncTerminalScroll();
+    }
+
+    function runTerminalCommand(rawCommand) {
+        const trimmed = rawCommand.trim();
+
+        if (!trimmed) {
+            return;
+        }
+
+        const [command, ...args] = trimmed.split(/\s+/);
+        const normalized = command.toLowerCase();
+
+        switch (normalized) {
+            case "help":
+                appendTerminalOutput([
+                    "Available commands:",
+                    "home",
+                    "clear",
+                    "ls",
+                    "cd",
+                    "help",
+                ].join("\n"));
+                break;
+            case "clear":
+                if (terminalHistory) {
+                    terminalHistory.textContent = "";
+                }
+                break;
+            case "home":
+                window.location.hash = "#home";
+                break;
+            case "ls":
+                appendTerminalOutput([
+                    "home",
+                    "grid",
+                    "terminal",
+                ].join("\n"));
+                break;
+            case "cd": {
+                const target = (args[0] || "").toLowerCase();
+                if (!target) {
+                    appendTerminalOutput("usage: cd [home|grid|terminal]");
+                    break;
+                }
+                if (target === "home" || target === "~") {
+                    window.location.hash = "#home";
+                    break;
+                }
+                if (target === "grid") {
+                    window.location.hash = "#grid";
+                    break;
+                }
+                if (target === "terminal") {
+                    window.location.hash = "#terminal";
+                    break;
+                }
+                appendTerminalOutput(`cd: no such location: ${args[0]}`);
+                break;
+            }
+            default:
+                appendTerminalOutput(`${command}: command not found`);
+        }
     }
 
     function handleTerminalKeydown(event) {
@@ -134,6 +207,7 @@
         if (event.key === "Enter") {
             event.preventDefault();
             appendTerminalEntry(terminalBuffer);
+            runTerminalCommand(terminalBuffer);
             terminalBuffer = "";
             renderTerminalInput();
             return;
