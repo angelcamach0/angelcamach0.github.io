@@ -614,6 +614,7 @@
 
                 const pageNode = createDynamicPage(target.name, target.titleText);
                 insertPageNodeAfter(activeView, pageNode);
+                renderNavigation(activeView);
                 renderTerminal();
                 appendTerminalOutput(`mkdir: created ${target.name}/`);
                 break;
