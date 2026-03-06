@@ -1,0 +1,182 @@
+[
+  {
+    "id": "terminal-search-router",
+    "type": "code",
+    "title": "Terminal Search Router",
+    "summary": "Routes grid filtering commands through the shared terminal state.",
+    "repo": "ark-scripts",
+    "path": "js/terminal_search_router.js",
+    "tags": ["javascript", "terminal", "search"],
+    "order": 10
+  },
+  {
+    "id": "bash-backup-helper",
+    "type": "code",
+    "title": "Bash Backup Helper",
+    "summary": "Small rsync backup helper for rotating working directories.",
+    "repo": "ark-scripts",
+    "path": "bash/backup_helper.sh",
+    "tags": ["bash", "backup", "automation"],
+    "order": 20
+  },
+  {
+    "id": "weather-scrape-probe",
+    "type": "code",
+    "title": "Weather Scrape Probe",
+    "summary": "CLI probe for pulling small weather snapshots into local logs.",
+    "repo": "ark-scripts",
+    "path": "python/weather_scrape_probe.py",
+    "tags": ["python", "weather", "cli"],
+    "order": 30
+  },
+  {
+    "id": "grid-filter-prototype",
+    "type": "code",
+    "title": "Grid Filter Prototype",
+    "summary": "Early experiment for dynamic tile relabeling and filtering.",
+    "repo": "ark-scripts",
+    "path": "js/grid_filter_prototype.js",
+    "tags": ["javascript", "grid", "prototype"],
+    "order": 40
+  },
+  {
+    "id": "grid-content-map",
+    "type": "guide",
+    "title": "Grid Content Map",
+    "summary": "Guide for deciding what belongs in each published tile.",
+    "repo": "ark-content",
+    "path": "guides/grid-content-map.md",
+    "tags": ["guide", "planning", "grid"],
+    "order": 50
+  },
+  {
+    "id": "terminal-command-map",
+    "type": "guide",
+    "title": "Terminal Command Map",
+    "summary": "Quick reference for the site terminal, routing, and page commands.",
+    "repo": "ark-content",
+    "path": "guides/terminal-command-map.md",
+    "tags": ["guide", "terminal", "commands"],
+    "order": 60
+  },
+  {
+    "id": "repo-split-notes",
+    "type": "guide",
+    "title": "Repo Split Notes",
+    "summary": "Working notes on when content stays in catalog versus its own repo.",
+    "repo": "ark-content",
+    "path": "guides/repo-split-notes.md",
+    "tags": ["guide", "repos", "content"],
+    "order": 70
+  },
+  {
+    "id": "lab-log-001",
+    "type": "post",
+    "title": "Lab Log 001",
+    "summary": "First post about turning the grid into a real content catalog.",
+    "repo": "ark-content",
+    "path": "posts/lab-log-001.md",
+    "tags": ["post", "lab", "site"],
+    "order": 80
+  },
+  {
+    "id": "cmatrix-notes",
+    "type": "post",
+    "title": "Cmatrix Notes",
+    "summary": "Notes on simulating terminal effects locally before using a backend.",
+    "repo": "ark-content",
+    "path": "posts/cmatrix-notes.md",
+    "tags": ["post", "terminal", "effects"],
+    "order": 90
+  },
+  {
+    "id": "tile-index-thoughts",
+    "type": "post",
+    "title": "Tile Index Thoughts",
+    "summary": "Short writeup on treating the site as an index rather than a storage layer.",
+    "repo": "ark-content",
+    "path": "posts/tile-index-thoughts.md",
+    "tags": ["post", "index", "content"],
+    "order": 100
+  },
+  {
+    "id": "journal-2026-03-01",
+    "type": "journal",
+    "title": "Journal 2026-03-01",
+    "summary": "Notes on the first pass of the home page terminal overlay.",
+    "repo": "ark-content",
+    "path": "journals/2026-03-01.md",
+    "tags": ["journal", "home", "overlay"],
+    "order": 110
+  },
+  {
+    "id": "journal-2026-03-03",
+    "type": "journal",
+    "title": "Journal 2026-03-03",
+    "summary": "Reflections on using the grid as the primary archive surface.",
+    "repo": "ark-content",
+    "path": "journals/2026-03-03.md",
+    "tags": ["journal", "grid", "archive"],
+    "order": 120
+  },
+  {
+    "id": "journal-2026-03-06",
+    "type": "journal",
+    "title": "Journal 2026-03-06",
+    "summary": "Working notes from building the manifest-driven catalog system.",
+    "repo": "ark-content",
+    "path": "journals/2026-03-06.md",
+    "tags": ["journal", "manifest", "catalog"],
+    "order": 130
+  },
+  {
+    "id": "weather-ui-scrap",
+    "type": "note",
+    "title": "Weather UI Scrap",
+    "summary": "Loose note about keeping status widgets small in the fixed title bar.",
+    "repo": "ark-content",
+    "path": "notes/weather-ui-scrap.md",
+    "tags": ["note", "weather", "ui"],
+    "order": 140
+  },
+  {
+    "id": "terminal-flag-ideas",
+    "type": "note",
+    "title": "Terminal Flag Ideas",
+    "summary": "Scratchpad for future terminal flags and command aliases.",
+    "repo": "ark-content",
+    "path": "notes/terminal-flag-ideas.md",
+    "tags": ["note", "terminal", "ideas"],
+    "order": 150
+  },
+  {
+    "id": "content-taxonomy",
+    "type": "note",
+    "title": "Content Taxonomy",
+    "summary": "Loose classification notes for code, guides, posts, docs, and journals.",
+    "repo": "ark-content",
+    "path": "notes/content-taxonomy.md",
+    "tags": ["note", "taxonomy", "content"],
+    "order": 160
+  },
+  {
+    "id": "catalog-schema-draft",
+    "type": "doc",
+    "title": "Catalog Schema Draft",
+    "summary": "Draft schema for stable tile identities and manifest fields.",
+    "repo": "ark-content",
+    "path": "docs/catalog-schema-draft.md",
+    "tags": ["doc", "schema", "manifest"],
+    "order": 170
+  },
+  {
+    "id": "publishing-flow",
+    "type": "doc",
+    "title": "Publishing Flow",
+    "summary": "Proposed path for moving notes into guides, posts, or code repos.",
+    "repo": "ark-content",
+    "path": "docs/publishing-flow.md",
+    "tags": ["doc", "publishing", "workflow"],
+    "order": 180
+  }
+]

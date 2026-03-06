@@ -26,6 +26,25 @@
         timeZone: "America/Chicago",
     });
     const texasWeatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=30.2672&longitude=-97.7431&current=temperature_2m&temperature_unit=fahrenheit";
+    const tileCatalogUrl = "data/tiles.json";
+    const tileTypeAliases = new Map([
+        ["code", "code"],
+        ["codes", "code"],
+        ["script", "code"],
+        ["scripts", "code"],
+        ["guide", "guide"],
+        ["guides", "guide"],
+        ["post", "post"],
+        ["posts", "post"],
+        ["journal", "journal"],
+        ["journals", "journal"],
+        ["note", "note"],
+        ["notes", "note"],
+        ["doc", "doc"],
+        ["docs", "doc"],
+        ["document", "doc"],
+        ["documents", "doc"],
+    ]);
     let homeTitleText = homeStage?.getAttribute("aria-label") || "Welcome.";
     const welcomeBodies = [];
     const gravity = 2200;
@@ -48,6 +67,13 @@
     let cmatrixFrame = null;
     let cmatrixLastTime = 0;
     const cmatrixFallbackSource = "friend@thearkprojects:~$lshome/grid/terminal/";
+    let tileCatalog = [];
+    let tileCatalogLoaded = false;
+    let tileFilter = {
+        mode: "all",
+        value: "all",
+        label: "all",
+    };
 
     function updateTexasTime() {
         if (!texasTime) return;
@@ -105,6 +131,251 @@
             .filter(Boolean)
             .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
             .join(" ");
+    }
+
+    function normalizeTileType(value) {
+        return tileTypeAliases.get(String(value || "").trim().toLowerCase()) || null;
+    }
+
+    function createSlug(value, fallback) {
+        const slug = String(value || fallback || "")
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+
+        return slug || fallback;
+    }
+
+    function normalizeTileRecord(rawTile, index) {
+        const type = normalizeTileType(rawTile?.type) || "note";
+        const title = String(rawTile?.title || `Untitled ${index + 1}`).trim();
+        const summary = String(rawTile?.summary || "No summary yet.").trim();
+        const repo = String(rawTile?.repo || "").trim();
+        const path = String(rawTile?.path || "").trim();
+        const tags = Array.isArray(rawTile?.tags)
+            ? rawTile.tags
+                .map((tag) => String(tag || "").trim().toLowerCase())
+                .filter(Boolean)
+            : [];
+        const href = String(rawTile?.href || "").trim();
+        const id = createSlug(rawTile?.id || title, `tile-${index + 1}`);
+        const order = Number.isFinite(Number(rawTile?.order)) ? Number(rawTile.order) : index;
+
+        return {
+            id,
+            type,
+            title,
+            summary,
+            repo,
+            path,
+            tags,
+            href,
+            order,
+        };
+    }
+
+    function compareTiles(left, right) {
+        if (left.order !== right.order) return left.order - right.order;
+        return left.title.localeCompare(right.title);
+    }
+
+    function getKnownTileTypes() {
+        const catalogTypes = tileCatalog.map((tile) => tile.type);
+        return Array.from(new Set([...tileTypeAliases.values(), ...catalogTypes])).sort();
+    }
+
+    function describeTileFilter(filter = tileFilter) {
+        switch (filter.mode) {
+            case "type":
+                return filter.value;
+            case "tag":
+                return `tag:${filter.value}`;
+            case "repo":
+                return `repo:${filter.value}`;
+            case "query":
+                return `query:${filter.value}`;
+            default:
+                return "all";
+        }
+    }
+
+    function formatTileSource(tile) {
+        return [tile.repo, tile.path].filter(Boolean).join(" / ") || "unassigned";
+    }
+
+    function filterTileCatalog() {
+        switch (tileFilter.mode) {
+            case "type":
+                return tileCatalog.filter((tile) => tile.type === tileFilter.value);
+            case "tag":
+                return tileCatalog.filter((tile) => tile.tags.includes(tileFilter.value));
+            case "repo":
+                return tileCatalog.filter((tile) => tile.repo.toLowerCase() === tileFilter.value);
+            case "query":
+                return tileCatalog.filter((tile) => {
+                    const haystack = [
+                        tile.id,
+                        tile.type,
+                        tile.title,
+                        tile.summary,
+                        tile.repo,
+                        tile.path,
+                        tile.tags.join(" "),
+                    ]
+                        .join(" ")
+                        .toLowerCase();
+
+                    return haystack.includes(tileFilter.value);
+                });
+            default:
+                return tileCatalog.slice();
+        }
+    }
+
+    function createCatalogStateTile(title, summary) {
+        return {
+            id: "__catalog-state__",
+            type: "note",
+            title,
+            summary,
+            repo: "site",
+            path: "data/tiles.json",
+            tags: ["system"],
+            href: "",
+            order: -1,
+            virtual: true,
+        };
+    }
+
+    function getVisibleCatalogTiles() {
+        const filtered = filterTileCatalog();
+
+        if (filtered.length > 0) {
+            return filtered;
+        }
+
+        if (!tileCatalogLoaded) {
+            return [createCatalogStateTile("Loading catalog", "Waiting for tile metadata to load.")];
+        }
+
+        if (tileCatalog.length === 0) {
+            return [createCatalogStateTile("Catalog empty", "Add entries to data/tiles.json to populate the grid.")];
+        }
+
+        return [
+            createCatalogStateTile(
+                "No matches",
+                `No tiles matched ${describeTileFilter()}. Run "search all" to reset.`
+            ),
+        ];
+    }
+
+    function formatSearchSummary() {
+        const visibleCount = filterTileCatalog().length;
+        const totalCount = tileCatalog.length;
+
+        if (tileFilter.mode === "all") {
+            return `search: showing all ${totalCount} catalog tiles`;
+        }
+
+        return `search: showing ${visibleCount} of ${totalCount} tiles for ${describeTileFilter()}`;
+    }
+
+    function parseSearchCommand(rawCommand) {
+        const parts = rawCommand.trim().split(/\s+/);
+        if (parts.length < 2) {
+            return {
+                error: `usage: search [all|${getKnownTileTypes().join("|")}|tag <tag>|repo <repo>|query]`,
+            };
+        }
+
+        const scope = parts[1].toLowerCase();
+
+        if (scope === "all" || scope === "reset") {
+            return {
+                mode: "all",
+                value: "all",
+                label: "all",
+            };
+        }
+
+        if (scope === "tag") {
+            const value = parts.slice(2).join(" ").trim().toLowerCase();
+            if (!value) {
+                return {
+                    error: "usage: search tag <tag>",
+                };
+            }
+
+            return {
+                mode: "tag",
+                value,
+                label: `tag:${value}`,
+            };
+        }
+
+        if (scope === "repo") {
+            const value = parts.slice(2).join(" ").trim().toLowerCase();
+            if (!value) {
+                return {
+                    error: "usage: search repo <repo>",
+                };
+            }
+
+            return {
+                mode: "repo",
+                value,
+                label: `repo:${value}`,
+            };
+        }
+
+        const type = normalizeTileType(scope);
+        if (type) {
+            return {
+                mode: "type",
+                value: type,
+                label: type,
+            };
+        }
+
+        const query = parts.slice(1).join(" ").trim().toLowerCase();
+        if (!query) {
+            return {
+                error: "usage: search <query>",
+            };
+        }
+
+        return {
+            mode: "query",
+            value: query,
+            label: `query:${query}`,
+        };
+    }
+
+    async function loadTileCatalog() {
+        try {
+            const response = await fetch(tileCatalogUrl, {
+                headers: {
+                    accept: "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`tile catalog request failed: ${response.status}`);
+            }
+
+            const payload = await response.json();
+            tileCatalog = Array.isArray(payload)
+                ? payload.map((tile, index) => normalizeTileRecord(tile, index)).sort(compareTiles)
+                : [];
+        } catch (error) {
+            console.error("Failed to load tile catalog", error);
+            tileCatalog = [];
+        } finally {
+            tileCatalogLoaded = true;
+            requestSync();
+        }
     }
 
     function appendPageNode(node) {
@@ -229,6 +500,7 @@
             return [
                 "bubble-grid",
                 "terminal@00-0A",
+                "tile-catalog",
             ];
         }
 
@@ -259,6 +531,11 @@
 
             lines.push(`  ${name}/`);
             lines.push(`    components: ${components.join(", ")}`);
+            if (page?.kind === "grid") {
+                lines.push(`    filter: ${describeTileFilter()}`);
+                lines.push(`    catalog: ${tileCatalog.length} items`);
+                lines.push(`    types: ${getKnownTileTypes().join(", ")}`);
+            }
             if (editableFields.length > 0) {
                 lines.push(`    editable: ${editableFields.join(", ")}`);
             }
@@ -758,6 +1035,14 @@
             return getPageNamesInOrder().map((name) => `${name}/`);
         }
 
+        if (currentDirectory === "grid") {
+            return [
+                "terminal@00-0A",
+                `filter:${describeTileFilter()}`,
+                ...getKnownTileTypes().map((type) => `${type}/`),
+            ];
+        }
+
         const page = getPageNode(currentDirectory);
         if (page?.editable) {
             return [
@@ -862,6 +1147,17 @@
         );
     }
 
+    function applyTileFilter(filter, options = {}) {
+        tileFilter = filter;
+
+        if (options.navigate !== false && activeView !== "grid") {
+            window.location.hash = "#grid";
+            return;
+        }
+
+        requestSync();
+    }
+
     function runTerminalCommand(rawCommand) {
         const trimmed = rawCommand.trim();
 
@@ -883,6 +1179,7 @@
                     "rm",
                     "tree",
                     "echo",
+                    "search",
                     "cmatrix",
                     "help",
                 ].join("\n"));
@@ -966,6 +1263,17 @@
             case "tree":
                 appendTerminalOutput(buildTreeOutput());
                 break;
+            case "search": {
+                const search = parseSearchCommand(trimmed);
+                if (search.error) {
+                    appendTerminalOutput(search.error);
+                    break;
+                }
+
+                applyTileFilter(search);
+                appendTerminalOutput(formatSearchSummary());
+                break;
+            }
             case "cmatrix":
                 startCmatrix();
                 break;
@@ -1247,6 +1555,9 @@
         if (!(bubble instanceof HTMLElement)) return;
 
         bubble.classList.add("bubble--terminal");
+        bubble.classList.remove("bubble--content", "bubble--empty");
+        bubble.dataset.tileId = "__terminal__";
+        bubble.dataset.tileType = "terminal";
 
         let shell = bubble.querySelector("[data-terminal-shell]");
         if (!shell) {
@@ -1260,6 +1571,12 @@
     function createBubble(cols) {
         const bubble = document.createElement("article");
         const label = document.createElement("span");
+        const content = document.createElement("div");
+        const kind = document.createElement("span");
+        const title = document.createElement("h2");
+        const summary = document.createElement("p");
+        const source = document.createElement("p");
+        const tags = document.createElement("div");
         const handle = document.createElement("button");
 
         bubble.className = "bubble";
@@ -1270,11 +1587,25 @@
         label.textContent = "00-0A";
         label.setAttribute("aria-hidden", "true");
 
+        content.className = "bubble__content";
+        kind.className = "bubble__kind";
+        title.className = "bubble__title";
+        summary.className = "bubble__summary";
+        source.className = "bubble__source";
+        tags.className = "bubble__tags";
+
+        content.appendChild(kind);
+        content.appendChild(title);
+        content.appendChild(summary);
+        content.appendChild(source);
+        content.appendChild(tags);
+
         handle.className = "bubble__handle";
         handle.type = "button";
         handle.setAttribute("aria-label", "Resize bubble");
 
         bubble.appendChild(label);
+        bubble.appendChild(content);
         bubble.appendChild(handle);
         attachResize(bubble, handle);
         applyBubbleSpan(bubble, cols);
@@ -1282,13 +1613,59 @@
         return bubble;
     }
 
+    function renderBubbleTags(container, tags) {
+        if (!container) return;
+
+        container.textContent = "";
+        tags.slice(0, 3).forEach((tag) => {
+            const chip = document.createElement("span");
+            chip.className = "bubble__tag";
+            chip.textContent = tag;
+            container.appendChild(chip);
+        });
+    }
+
+    function renderCatalogBubble(bubble, tile, slotIndex) {
+        const label = bubble.querySelector(".bubble__label");
+        const kind = bubble.querySelector(".bubble__kind");
+        const title = bubble.querySelector(".bubble__title");
+        const summary = bubble.querySelector(".bubble__summary");
+        const source = bubble.querySelector(".bubble__source");
+        const tags = bubble.querySelector(".bubble__tags");
+
+        bubble.classList.remove("bubble--terminal");
+        bubble.classList.add("bubble--content");
+        bubble.classList.toggle("bubble--empty", Boolean(tile.virtual));
+        bubble.dataset.tileId = tile.id;
+        bubble.dataset.tileType = tile.type;
+        bubble.dataset.repo = tile.repo;
+        bubble.dataset.path = tile.path;
+
+        if (label) {
+            label.textContent = getBubbleTitle(slotIndex);
+        }
+        if (kind) {
+            kind.textContent = tile.type;
+        }
+        if (title) {
+            title.textContent = tile.title;
+        }
+        if (summary) {
+            summary.textContent = tile.summary;
+        }
+        if (source) {
+            source.textContent = formatTileSource(tile);
+        }
+
+        renderBubbleTags(tags, tile.tags || []);
+    }
+
     function syncGrid() {
         if (grid.hidden) return;
 
-        const { gap, height, cols, cellSize } = getMetrics();
-        const targetHeight = height * (1 + extraScrollScreens);
-        const rows = Math.max(1, Math.ceil((targetHeight + gap) / (cellSize + gap)));
-        const needed = cols * rows;
+        const { cols, cellSize } = getMetrics();
+        const visibleTiles = getVisibleCatalogTiles();
+        const needed = Math.max(1, visibleTiles.length + 1);
 
         grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
         grid.style.gridAutoRows = `${cellSize}px`;
@@ -1311,10 +1688,19 @@
         ensureGridTerminalBubble();
 
         Array.from(grid.children).forEach((bubble, index) => {
-            const label = bubble.querySelector(".bubble__label");
-            if (label) {
-                label.textContent = getBubbleTitle(index);
+            if (!(bubble instanceof HTMLElement)) return;
+
+            if (index === 0) {
+                const label = bubble.querySelector(".bubble__label");
+                if (label) {
+                    label.textContent = getBubbleTitle(0);
+                }
+                return;
             }
+
+            const tile = visibleTiles[index - 1];
+            if (!tile) return;
+            renderCatalogBubble(bubble, tile, index);
         });
 
         renderTerminal();
@@ -1564,6 +1950,7 @@
     });
     renderView();
     renderTerminal();
+    loadTileCatalog();
     buildWelcomeLetters();
     updateTexasTime();
     loadTexasWeather();

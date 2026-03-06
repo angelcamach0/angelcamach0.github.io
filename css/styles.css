@@ -581,6 +581,14 @@ body::-webkit-scrollbar {
   z-index: 3;
 }
 
+.bubble--terminal .bubble__content {
+  display: none;
+}
+
+.bubble--content .bubble__content {
+  display: flex;
+}
+
 .bubble__label {
   position: absolute;
   top: 12px;
@@ -594,6 +602,85 @@ body::-webkit-scrollbar {
   text-transform: uppercase;
   pointer-events: none;
   white-space: nowrap;
+}
+
+.bubble__content {
+  position: absolute;
+  inset: 42px 14px 18px;
+  z-index: 1;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  color: var(--outline);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bubble__kind {
+  color: rgba(215, 199, 164, 0.74);
+  font-family: "Courier New", "Lucida Console", monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bubble__title {
+  margin: 0;
+  color: #f3e7c2;
+  font-family: "Courier New", "Lucida Console", monospace;
+  font-size: clamp(1rem, 1.35vw, 1.32rem);
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.bubble__summary {
+  margin: 0;
+  color: rgba(233, 219, 180, 0.9);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: clamp(0.8rem, 0.95vw, 0.96rem);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+.bubble__source {
+  margin: auto 0 0;
+  color: rgba(215, 199, 164, 0.76);
+  font-family: "Courier New", "Lucida Console", monospace;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.bubble__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bubble__tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.2rem;
+  padding: 0.12rem 0.42rem;
+  border: 1px solid rgba(215, 199, 164, 0.28);
+  border-radius: 999px;
+  color: rgba(243, 231, 194, 0.82);
+  font-family: "Courier New", "Lucida Console", monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
+
+.bubble--empty .bubble__kind {
+  color: rgba(215, 199, 164, 0.58);
 }
 
 .bubble__handle {
