@@ -736,11 +736,11 @@ body::-webkit-scrollbar {
 }
 
 .bubble--link:hover {
-  transform: translateY(-4px);
-  border-color: rgba(244, 233, 205, 0.52);
+  transform: translateY(-1px);
+  border-color: rgba(244, 233, 205, 0.42);
   box-shadow:
-    0 0 0 1px rgba(240, 227, 193, 0.14),
-    0 22px 38px rgba(24, 22, 18, 0.18);
+    0 0 0 1px rgba(240, 227, 193, 0.08),
+    0 14px 24px rgba(24, 22, 18, 0.12);
 }
 
 .bubble--link:focus-visible {
@@ -762,6 +762,7 @@ body::-webkit-scrollbar {
 
 .bubble--content .bubble__content {
   display: flex;
+  gap: 6px;
 }
 
 .bubble__label {
@@ -842,6 +843,15 @@ body::-webkit-scrollbar {
   pointer-events: auto;
 }
 
+.bubble--content .bubble__preview {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .bubble__preview * {
   pointer-events: auto;
 }
@@ -868,6 +878,11 @@ body::-webkit-scrollbar {
   border-radius: 6px;
   object-fit: contain;
   background: rgba(255, 248, 232, 0.03);
+}
+
+.bubble--content .bubble__preview-image {
+  border-radius: 0;
+  background: transparent;
 }
 
 .bubble__preview-text {
