@@ -4,10 +4,24 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dynamic Bubbles</title>
-    <link rel="stylesheet" href="css/styles.css?v=grid42" />
+    <link rel="stylesheet" href="css/styles.css?v=grid43" />
 </head>
 <body>
     <header class="title-bar" id="top">
+        <section class="title-bar__meta" aria-label="Texas weather and links">
+            <div class="title-bar__metric">
+                <span class="title-bar__label">Texas</span>
+                <span class="title-bar__value" data-texas-temp>--&deg;F</span>
+            </div>
+            <div class="title-bar__metric">
+                <span class="title-bar__label">Time</span>
+                <time class="title-bar__value title-bar__value--time" data-texas-time>00:00:00</time>
+            </div>
+            <div class="title-bar__actions">
+                <a class="title-bar__action" href="https://github.com/angelcamach0" target="_blank" rel="noreferrer">GitHub</a>
+                <button class="title-bar__action title-bar__action--button" type="button" data-resume-button>Resume</button>
+            </div>
+        </section>
         <a class="title-bar__brand" href="#home">The Ark Projects</a>
         <nav class="title-bar__nav" aria-label="Primary navigation">
             <a href="#grid" data-view="grid">Grid</a>
@@ -18,20 +32,6 @@
         <section id="bubble-grid" class="page-view" aria-label="dynamic bubble grid"></section>
         <section id="home-view" class="catalog-view page-view" aria-labelledby="home-title" hidden>
             <div class="catalog-view__layout">
-                <section class="home-status" aria-label="Texas weather and links">
-                    <div class="home-status__metric">
-                        <span class="home-status__label">Texas</span>
-                        <span class="home-status__value" data-texas-temp>--&deg;F</span>
-                    </div>
-                    <div class="home-status__metric">
-                        <span class="home-status__label">Time</span>
-                        <time class="home-status__value home-status__value--time" data-texas-time>00:00:00</time>
-                    </div>
-                    <div class="home-status__actions">
-                        <a class="home-status__link" href="https://github.com/angelcamach0" target="_blank" rel="noreferrer">GitHub</a>
-                        <button class="home-status__link home-status__link--button" type="button" data-resume-button>Resume</button>
-                    </div>
-                </section>
                 <aside class="catalog-view__terminal">
                     <div class="terminal-shell terminal-shell--sidebar" data-terminal-shell data-terminal-view="home" tabindex="0" role="textbox" aria-multiline="true" aria-labelledby="home-terminal-title">
                         <h2 id="home-terminal-title" class="sr-only">Home terminal</h2>

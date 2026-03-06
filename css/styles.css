@@ -104,7 +104,7 @@ body::after {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 22px;
+  gap: 18px;
   width: 100%;
   min-height: var(--title-height);
   padding: 0 18px;
@@ -112,8 +112,50 @@ body::after {
   border-bottom: 2px solid var(--outline);
 }
 
+.title-bar__meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.title-bar__metric {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.title-bar__label {
+  color: rgba(215, 199, 164, 0.65);
+  font-family: "Courier New", "Lucida Console", monospace;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.title-bar__value {
+  color: #f3e7c2;
+  font-family: "Courier New", "Lucida Console", monospace;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.title-bar__value--time {
+  font-size: 0.82rem;
+}
+
+.title-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .title-bar__brand,
-.title-bar__nav a {
+.title-bar__nav a,
+.title-bar__action {
   color: var(--outline);
   font-family: "Courier New", "Lucida Console", monospace;
   font-weight: 700;
@@ -127,6 +169,23 @@ body::after {
   font-size: 1rem;
   flex: 0 0 auto;
   white-space: nowrap;
+}
+
+.title-bar__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.75rem;
+  padding: 0.28rem 0.58rem;
+  background: transparent;
+  border: 1px solid rgba(215, 199, 164, 0.6);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.title-bar__action--button {
+  appearance: none;
 }
 
 .title-bar__nav {
@@ -168,11 +227,13 @@ body::after {
 }
 
 .title-bar__brand:hover,
-.title-bar__nav a:hover {
+.title-bar__nav a:hover,
+.title-bar__action:hover {
   color: #efe2c6;
 }
 
-.title-bar__nav a:hover {
+.title-bar__nav a:hover,
+.title-bar__action:hover {
   border-color: rgba(215, 199, 164, 0.35);
 }
 
@@ -217,71 +278,6 @@ body::-webkit-scrollbar {
   z-index: 3;
   width: clamp(420px, 44vw, 680px);
   max-width: calc(100vw - 56px);
-}
-
-.home-status {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 2;
-  display: grid;
-  gap: 12px;
-  width: clamp(14rem, 20vw, 18rem);
-}
-
-.home-status__metric {
-  display: grid;
-  gap: 3px;
-}
-
-.home-status__label {
-  color: rgba(48, 42, 33, 0.74);
-  font-family: "Courier New", "Lucida Console", monospace;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.home-status__value {
-  color: #171411;
-  font-family: "Courier New", "Lucida Console", monospace;
-  font-size: clamp(1.3rem, 2vw, 1.75rem);
-  font-weight: 700;
-  line-height: 0.96;
-}
-
-.home-status__value--time {
-  font-size: clamp(1.15rem, 1.75vw, 1.45rem);
-}
-
-.home-status__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.home-status__link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 2rem;
-  padding: 0.35rem 0.78rem;
-  background: #050505;
-  border: 1px solid rgba(215, 199, 164, 0.8);
-  border-radius: 999px;
-  color: var(--outline);
-  font-family: "Courier New", "Lucida Console", monospace;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-decoration: none;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.home-status__link--button {
-  appearance: none;
 }
 
 .terminal-view {
@@ -458,7 +454,7 @@ body::-webkit-scrollbar {
 
 #home-view .catalog-view__copy {
   min-height: clamp(620px, 88vh, 920px);
-  padding-top: clamp(5rem, 9vw, 6.5rem);
+  padding-top: 0;
 }
 
 .sr-only {
@@ -540,15 +536,10 @@ body::-webkit-scrollbar {
 
 #home-description {
   position: absolute;
-  top: clamp(5.6rem, 11vw, 7.25rem);
+  top: clamp(3.8rem, 8vw, 5.8rem);
   left: 0;
   z-index: 2;
   max-width: clamp(18rem, 32vw, 34rem);
-}
-
-.home-status__link:hover {
-  background: #171411;
-  color: #f3e7c2;
 }
 
 .bubble {
@@ -653,12 +644,6 @@ body::-webkit-scrollbar {
     z-index: auto;
   }
 
-  .home-status {
-    position: static;
-    width: auto;
-    margin-bottom: 16px;
-  }
-
   .catalog-view__copy {
     max-width: 58rem;
     padding-top: 0;
@@ -694,6 +679,32 @@ body::-webkit-scrollbar {
   .title-bar {
     gap: 12px;
     padding: 0 12px;
+  }
+
+  .title-bar__meta {
+    gap: 8px;
+  }
+
+  .title-bar__label {
+    display: none;
+  }
+
+  .title-bar__value {
+    font-size: 0.76rem;
+  }
+
+  .title-bar__value--time {
+    font-size: 0.72rem;
+  }
+
+  .title-bar__actions {
+    gap: 6px;
+  }
+
+  .title-bar__action {
+    min-height: 1.65rem;
+    padding: 0.22rem 0.45rem;
+    font-size: 0.62rem;
   }
 
   .title-bar__brand {
