@@ -1,9 +1,37 @@
 (function () {
     const grid = document.getElementById("bubble-grid");
+    const catalogView = document.getElementById("catalog-view");
     const titleBar = document.querySelector(".title-bar");
+    const navLinks = Array.from(document.querySelectorAll(".title-bar__nav a"));
     if (!grid) return;
 
     const extraScrollScreens = 2;
+
+    function getActiveView() {
+        return window.location.hash === "#catalog" ? "catalog" : "grid";
+    }
+
+    function updateNavigation(activeView) {
+        navLinks.forEach((link) => {
+            link.classList.toggle("is-active", link.dataset.view === activeView);
+        });
+    }
+
+    function renderView() {
+        const activeView = getActiveView();
+        const showGrid = activeView === "grid";
+
+        grid.hidden = !showGrid;
+        if (catalogView) {
+            catalogView.hidden = showGrid;
+        }
+
+        updateNavigation(activeView);
+
+        if (showGrid) {
+            requestSync();
+        }
+    }
 
     function getColumnCount(width) {
         if (width < 560) return 1;
@@ -114,6 +142,8 @@
     }
 
     function syncGrid() {
+        if (grid.hidden) return;
+
         const { gap, height, cols, cellSize } = getMetrics();
         const targetHeight = height * (1 + extraScrollScreens);
         const rows = Math.max(1, Math.ceil((targetHeight + gap) / (cellSize + gap)));
@@ -148,13 +178,14 @@
     let frame = null;
 
     function requestSync() {
-        if (frame !== null) return;
+        if (grid.hidden || frame !== null) return;
         frame = window.requestAnimationFrame(() => {
             frame = null;
             syncGrid();
         });
     }
 
-    syncGrid();
+    renderView();
     window.addEventListener("resize", requestSync);
+    window.addEventListener("hashchange", renderView);
 })();

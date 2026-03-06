@@ -27,6 +27,10 @@ body {
   background: var(--background);
 }
 
+.page-views {
+  min-height: calc(100vh - var(--title-height));
+}
+
 .title-bar {
   position: sticky;
   top: 0;
@@ -67,6 +71,10 @@ body {
   opacity: 0.92;
 }
 
+.title-bar__nav a.is-active {
+  color: #fff8e8;
+}
+
 .title-bar__brand:hover,
 .title-bar__nav a:hover {
   color: #efe2c6;
@@ -89,6 +97,37 @@ body::-webkit-scrollbar {
   gap: var(--gap);
   padding: 0;
   background: var(--background);
+}
+
+.catalog-view {
+  min-height: calc(100vh - var(--title-height));
+  padding: clamp(28px, 6vw, 84px);
+  background: #e9e0cf;
+}
+
+.catalog-view__copy {
+  max-width: 58rem;
+  padding-top: clamp(12px, 5vw, 48px);
+}
+
+.catalog-view__copy h1 {
+  margin: 0 0 18px;
+  color: #171411;
+  font-family: "Courier New", "Lucida Console", monospace;
+  font-size: clamp(4rem, 13vw, 10rem);
+  font-weight: 700;
+  letter-spacing: -0.08em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+.catalog-view__copy p {
+  margin: 0;
+  max-width: 34rem;
+  color: #302a21;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  line-height: 1.65;
 }
 
 .bubble {
@@ -188,6 +227,19 @@ body::-webkit-scrollbar {
 
   .title-bar__nav a {
     font-size: 0.68rem;
+  }
+
+  .catalog-view {
+    padding: 22px 16px 28px;
+  }
+
+  .catalog-view__copy h1 {
+    margin-bottom: 14px;
+    font-size: clamp(3rem, 18vw, 5.4rem);
+  }
+
+  .catalog-view__copy p {
+    max-width: 100%;
   }
 
   .bubble {
