@@ -29,15 +29,15 @@ body {
   min-height: 100%;
   display: grid;
   place-items: center;
-  padding: var(--gap);
+  padding: 0;
 }
 
 #bubble-grid {
-  width: 100%;
-  max-width: 1400px;
+  width: 100vw;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(var(--bubble-size), 1fr));
   gap: var(--gap);
+  padding: var(--gap);
 }
 
 .bubble {
