@@ -72,6 +72,8 @@
     let tileCatalog = [];
     let tileCatalogLoaded = false;
     let tileCatalogSource = "local";
+    const tilePreviewCache = new Map();
+    const tilePreviewRequests = new Map();
     let tileFilter = {
         mode: "all",
         value: "all",
@@ -156,6 +158,7 @@
         const summary = String(rawTile?.summary || "No summary yet.").trim();
         const repo = String(rawTile?.repo || "").trim();
         const path = String(rawTile?.path || "").trim();
+        const mimeType = String(rawTile?.mimeType || rawTile?.mime_type || "").trim().toLowerCase();
         const tags = Array.isArray(rawTile?.tags)
             ? rawTile.tags
                 .map((tag) => String(tag || "").trim().toLowerCase())
@@ -164,6 +167,7 @@
         const href = String(rawTile?.href || "").trim();
         const id = createSlug(rawTile?.id || title, `tile-${index + 1}`);
         const order = Number.isFinite(Number(rawTile?.order)) ? Number(rawTile.order) : index;
+        const size = Number.isFinite(Number(rawTile?.size)) ? Number(rawTile.size) : 0;
 
         return {
             id,
@@ -172,10 +176,71 @@
             summary,
             repo,
             path,
+            mimeType,
             tags,
             href,
             order,
+            size,
         };
+    }
+
+    function inferMimeTypeFromPath(value) {
+        const lower = String(value || "").toLowerCase();
+
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".gif")) return "image/gif";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".svg")) return "image/svg+xml";
+        if (lower.endsWith(".pdf")) return "application/pdf";
+        if (lower.endsWith(".md")) return "text/markdown";
+        if (lower.endsWith(".txt")) return "text/plain";
+        if (lower.endsWith(".json")) return "application/json";
+        if (lower.endsWith(".js")) return "text/javascript";
+        if (lower.endsWith(".ts")) return "text/plain";
+        if (lower.endsWith(".py")) return "text/plain";
+        if (lower.endsWith(".sh")) return "text/plain";
+        if (lower.endsWith(".html")) return "text/html";
+
+        return "";
+    }
+
+    function getTileMimeType(tile) {
+        return tile?.mimeType || inferMimeTypeFromPath(tile?.path || tile?.href || "");
+    }
+
+    function getTilePreviewMode(tile) {
+        if (!tile?.href || tile.virtual) return "none";
+
+        const mimeType = getTileMimeType(tile);
+        if (mimeType.startsWith("image/")) return "image";
+        if (mimeType === "application/pdf") return "pdf";
+        if (tile.type === "code") return "code";
+        if (
+            mimeType.startsWith("text/") ||
+            mimeType.includes("javascript") ||
+            mimeType === "application/json"
+        ) {
+            return tile.type === "code" ? "code" : "text";
+        }
+
+        return "none";
+    }
+
+    function buildTextPreviewSnippet(text, mode) {
+        const lines = String(text || "")
+            .replace(/\r/g, "")
+            .split("\n")
+            .map((line) => mode === "code" ? line.slice(0, 88) : line.trim())
+            .filter((line, index, source) => line.length > 0 || (mode === "code" && index < source.length));
+        const previewLines = lines.slice(0, mode === "code" ? 8 : 6);
+        const snippet = previewLines.join("\n").trim();
+
+        if (!snippet) {
+            return mode === "code" ? "// preview unavailable" : "Preview unavailable.";
+        }
+
+        return snippet.length > 420 ? `${snippet.slice(0, 420).trimEnd()}…` : snippet;
     }
 
     function compareTiles(left, right) {
@@ -1636,6 +1701,7 @@
         const content = document.createElement("div");
         const kind = document.createElement("span");
         const title = document.createElement("h2");
+        const preview = document.createElement("div");
         const summary = document.createElement("p");
         const source = document.createElement("p");
         const tags = document.createElement("div");
@@ -1653,12 +1719,15 @@
         content.className = "bubble__content";
         kind.className = "bubble__kind";
         title.className = "bubble__title";
+        preview.className = "bubble__preview";
+        preview.hidden = true;
         summary.className = "bubble__summary";
         source.className = "bubble__source";
         tags.className = "bubble__tags";
 
         content.appendChild(kind);
         content.appendChild(title);
+        content.appendChild(preview);
         content.appendChild(summary);
         content.appendChild(source);
         content.appendChild(tags);
@@ -1717,6 +1786,131 @@
         };
     }
 
+    function renderTilePreview(previewEl, tile) {
+        if (!previewEl) return;
+
+        previewEl.className = "bubble__preview";
+        previewEl.textContent = "";
+        previewEl.replaceChildren();
+
+        const mode = getTilePreviewMode(tile);
+        if (mode === "none") {
+            previewEl.hidden = true;
+            return;
+        }
+
+        previewEl.hidden = false;
+        const cached = tilePreviewCache.get(tile.id);
+
+        if (!cached) {
+            previewEl.classList.add("bubble__preview--loading");
+            previewEl.textContent = mode === "pdf" ? "PDF document" : "Loading preview...";
+            scheduleTilePreview(tile, mode);
+            return;
+        }
+
+        if (cached.state === "loading") {
+            previewEl.classList.add("bubble__preview--loading");
+            previewEl.textContent = mode === "pdf" ? "PDF document" : "Loading preview...";
+            return;
+        }
+
+        if (cached.state === "error") {
+            previewEl.classList.add("bubble__preview--error");
+            previewEl.textContent = "Preview unavailable";
+            return;
+        }
+
+        previewEl.classList.add(`bubble__preview--${cached.mode}`);
+
+        if (cached.mode === "image") {
+            const image = document.createElement("img");
+            image.className = "bubble__preview-image";
+            image.src = cached.src;
+            image.alt = `${tile.title} preview`;
+            image.loading = "lazy";
+            image.decoding = "async";
+            previewEl.appendChild(image);
+            return;
+        }
+
+        if (cached.mode === "pdf") {
+            const badge = document.createElement("span");
+            badge.className = "bubble__preview-badge";
+            badge.textContent = tile.size > 0
+                ? `PDF · ${Math.max(1, Math.round(tile.size / 1024))} KB`
+                : "PDF document";
+            previewEl.appendChild(badge);
+            return;
+        }
+
+        const snippet = document.createElement("pre");
+        snippet.className = "bubble__preview-text";
+        snippet.textContent = cached.text;
+        previewEl.appendChild(snippet);
+    }
+
+    function scheduleTilePreview(tile, mode = getTilePreviewMode(tile)) {
+        if (!tile?.id || mode === "none") return;
+        if (tilePreviewCache.has(tile.id) || tilePreviewRequests.has(tile.id)) return;
+
+        if (mode === "image") {
+            tilePreviewCache.set(tile.id, {
+                state: "ready",
+                mode,
+                src: tile.href,
+            });
+            requestSync();
+            return;
+        }
+
+        if (mode === "pdf") {
+            tilePreviewCache.set(tile.id, {
+                state: "ready",
+                mode,
+            });
+            requestSync();
+            return;
+        }
+
+        tilePreviewCache.set(tile.id, {
+            state: "loading",
+            mode,
+        });
+
+        const request = fetch(tile.href, {
+            headers: {
+                accept: "text/plain, text/markdown, application/json, text/javascript, */*",
+            },
+        })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`preview request failed: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then((text) => {
+                tilePreviewCache.set(tile.id, {
+                    state: "ready",
+                    mode,
+                    text: buildTextPreviewSnippet(text, mode),
+                });
+                requestSync();
+            })
+            .catch(() => {
+                tilePreviewCache.set(tile.id, {
+                    state: "error",
+                    mode,
+                });
+                requestSync();
+            })
+            .finally(() => {
+                tilePreviewRequests.delete(tile.id);
+            });
+
+        tilePreviewRequests.set(tile.id, request);
+    }
+
     function renderBubbleTags(container, tags) {
         if (!container) return;
 
@@ -1733,6 +1927,7 @@
         const label = bubble.querySelector(".bubble__label");
         const kind = bubble.querySelector(".bubble__kind");
         const title = bubble.querySelector(".bubble__title");
+        const preview = bubble.querySelector(".bubble__preview");
         const summary = bubble.querySelector(".bubble__summary");
         const source = bubble.querySelector(".bubble__source");
         const tags = bubble.querySelector(".bubble__tags");
@@ -1755,6 +1950,7 @@
         if (title) {
             title.textContent = tile.title;
         }
+        renderTilePreview(preview, tile);
         if (summary) {
             summary.textContent = tile.summary;
         }
