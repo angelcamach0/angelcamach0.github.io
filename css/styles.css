@@ -127,6 +127,14 @@ body::after {
   display: flex;
   align-items: center;
   gap: 18px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+
+.title-bar__nav::-webkit-scrollbar {
+  display: none;
 }
 
 .title-bar__nav a {

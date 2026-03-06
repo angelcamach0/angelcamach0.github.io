@@ -7,7 +7,7 @@
     const homeDescription = document.getElementById("home-description");
     const welcomeLetters = document.getElementById("welcome-letters");
     const titleBar = document.querySelector(".title-bar");
-    const navLinks = Array.from(document.querySelectorAll(".title-bar__nav a"));
+    const titleBarNav = document.querySelector(".title-bar__nav");
     const pageViews = document.querySelector(".page-views");
     const terminalInstances = [];
     const pageNodes = new Map();
@@ -47,6 +47,8 @@
             element,
             prev: null,
             next: null,
+            navLabel: options.navLabel || formatPageName(name),
+            showInNav: options.showInNav !== false,
             editable: Boolean(options.editable),
             kind: options.kind || "static",
             titleEl: options.titleEl || null,
@@ -55,6 +57,14 @@
             titleText: options.titleText || "",
             descriptionText: options.descriptionText || "",
         };
+    }
+
+    function formatPageName(name) {
+        return name
+            .split(/[-_\s]+/)
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(" ");
     }
 
     function appendPageNode(node) {
@@ -102,6 +112,48 @@
         return node;
     }
 
+    function unregisterTerminalInstancesWithin(element) {
+        if (!element) return;
+
+        for (let index = terminalInstances.length - 1; index >= 0; index -= 1) {
+            const instance = terminalInstances[index];
+            if (element.contains(instance.shell)) {
+                if (activeTerminalShell === instance.shell) {
+                    activeTerminalShell = null;
+                }
+                terminalInstances.splice(index, 1);
+            }
+        }
+    }
+
+    function removePageNode(name) {
+        const node = getPageNode(name);
+        if (!node) return null;
+
+        if (node.prev) {
+            const prevNode = getPageNode(node.prev);
+            if (prevNode) {
+                prevNode.next = node.next;
+            }
+        } else {
+            pageHead = node.next;
+        }
+
+        if (node.next) {
+            const nextNode = getPageNode(node.next);
+            if (nextNode) {
+                nextNode.prev = node.prev;
+            }
+        } else {
+            pageTail = node.prev;
+        }
+
+        unregisterTerminalInstancesWithin(node.element);
+        node.element?.remove();
+        pageNodes.delete(name);
+        return node;
+    }
+
     function getPageNode(name) {
         return pageNodes.get(name) || null;
     }
@@ -122,8 +174,63 @@
         return getPageNamesInOrder().indexOf(name);
     }
 
+    function getPageComponents(page) {
+        if (!page) return [];
+
+        if (page.kind === "home") {
+            return [
+                "terminal",
+                "welcome-stage",
+                "description",
+            ];
+        }
+
+        if (page.kind === "grid") {
+            return [
+                "bubble-grid",
+                "terminal@00-0A",
+            ];
+        }
+
+        if (page.kind === "terminal") {
+            return [
+                "terminal",
+            ];
+        }
+
+        return [
+            "terminal",
+            "tittle",
+            "description",
+        ];
+    }
+
+    function getEditableFields(page) {
+        return page?.editable ? ["tittle", "description"] : [];
+    }
+
+    function buildTreeOutput() {
+        const lines = ["/"];
+
+        getPageNamesInOrder().forEach((name) => {
+            const page = getPageNode(name);
+            const components = getPageComponents(page);
+            const editableFields = getEditableFields(page);
+
+            lines.push(`  ${name}/`);
+            lines.push(`    components: ${components.join(", ")}`);
+            if (editableFields.length > 0) {
+                lines.push(`    editable: ${editableFields.join(", ")}`);
+            }
+        });
+
+        return lines.join("\n");
+    }
+
     function initializePageChain() {
         appendPageNode(createPageNode("home", homeView, {
+            navLabel: "Home",
+            showInNav: false,
             editable: true,
             kind: "home",
             titleEl: homeStage,
@@ -133,17 +240,31 @@
             descriptionText: homeDescription?.textContent?.trim() || "",
         }));
         appendPageNode(createPageNode("grid", grid, {
+            navLabel: "Grid",
             kind: "grid",
         }));
         appendPageNode(createPageNode("terminal", terminalView, {
+            navLabel: "Terminal",
             kind: "terminal",
         }));
     }
 
-    function updateNavigation(viewName) {
-        navLinks.forEach((link) => {
-            link.classList.toggle("is-active", link.dataset.view === viewName);
-        });
+    function renderNavigation(viewName) {
+        if (!titleBarNav) return;
+
+        titleBarNav.textContent = "";
+
+        getPageNamesInOrder()
+            .map((name) => getPageNode(name))
+            .filter((node) => node && node.showInNav)
+            .forEach((node) => {
+                const link = document.createElement("a");
+                link.href = `#${node.name}`;
+                link.dataset.view = node.name;
+                link.textContent = node.navLabel;
+                link.classList.toggle("is-active", node.name === viewName);
+                titleBarNav.appendChild(link);
+            });
     }
 
     function getEnteringView(viewName) {
@@ -220,7 +341,7 @@
             }
         });
 
-        updateNavigation(nextView);
+        renderNavigation(nextView);
 
         if (nextView === "grid") {
             requestSync();
@@ -372,6 +493,17 @@
         };
     }
 
+    function parsePageCommandTarget(rawCommand, commandName) {
+        const pattern = new RegExp(`^${commandName}\\s+(?:"([^"]+)"|'([^']+)'|(\\S+))$`);
+        const match = rawCommand.match(pattern);
+        if (!match) return null;
+
+        return (match[1] ?? match[2] ?? match[3] ?? "")
+            .trim()
+            .toLowerCase()
+            .replace(/\/+$/, "");
+    }
+
     function updatePageContent(pageName, target, value) {
         const page = getPageNode(pageName);
         if (!page || !page.editable) {
@@ -437,6 +569,8 @@
                     "ls",
                     "cd",
                     "mkdir",
+                    "rm",
+                    "tree",
                     "echo",
                     "help",
                 ].join("\n"));
@@ -484,6 +618,41 @@
                 appendTerminalOutput(`mkdir: created ${target.name}/`);
                 break;
             }
+            case "rm": {
+                const target = parsePageCommandTarget(trimmed, "rm");
+                if (!target) {
+                    appendTerminalOutput("usage: rm [page]");
+                    break;
+                }
+
+                const page = getPageNode(target);
+                if (!page) {
+                    appendTerminalOutput(`rm: ${target}: no such page`);
+                    break;
+                }
+
+                if (page.kind !== "dynamic") {
+                    appendTerminalOutput(`rm: ${target}: built-in pages cannot be removed`);
+                    break;
+                }
+
+                const fallbackView = page.prev || page.next || "home";
+                removePageNode(target);
+                appendTerminalOutput(`rm: removed ${target}/`);
+                renderNavigation(activeView === target ? fallbackView : activeView);
+
+                if (currentDirectory === target) {
+                    currentDirectory = "~";
+                }
+
+                if (activeView === target) {
+                    window.location.hash = `#${fallbackView}`;
+                }
+                break;
+            }
+            case "tree":
+                appendTerminalOutput(buildTreeOutput());
+                break;
             case "echo": {
                 const assignment = parseEchoAssignment(trimmed);
                 if (!assignment) {
