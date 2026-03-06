@@ -3,6 +3,7 @@
     const catalogView = document.getElementById("catalog-view");
     const titleBar = document.querySelector(".title-bar");
     const navLinks = Array.from(document.querySelectorAll(".title-bar__nav a"));
+    const root = document.documentElement;
     if (!grid) return;
 
     const extraScrollScreens = 2;
@@ -31,6 +32,16 @@
         if (showGrid) {
             requestSync();
         }
+    }
+
+    function showCursorInvert(clientX, clientY) {
+        root.style.setProperty("--cursor-x", `${clientX}px`);
+        root.style.setProperty("--cursor-y", `${clientY}px`);
+        root.style.setProperty("--invert-opacity", "1");
+    }
+
+    function hideCursorInvert() {
+        root.style.setProperty("--invert-opacity", "0");
     }
 
     function getColumnCount(width) {
@@ -188,4 +199,14 @@
     renderView();
     window.addEventListener("resize", requestSync);
     window.addEventListener("hashchange", renderView);
+    document.addEventListener("pointermove", (event) => {
+        if (event.pointerType && event.pointerType !== "mouse") return;
+        showCursorInvert(event.clientX, event.clientY);
+    });
+    document.addEventListener("pointerleave", hideCursorInvert);
+    document.addEventListener("mouseout", (event) => {
+        if (!event.relatedTarget) {
+            hideCursorInvert();
+        }
+    });
 })();

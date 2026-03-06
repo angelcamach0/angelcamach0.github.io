@@ -5,6 +5,10 @@
   --title-height: 64px;
   --gap: 8px;
   --radius: 14px;
+  --cursor-x: 50vw;
+  --cursor-y: 50vh;
+  --invert-size: 180px;
+  --invert-opacity: 0;
 }
 
 *,
@@ -23,13 +27,35 @@ body {
 }
 
 body {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
   background: var(--background);
-  transition: filter 180ms ease;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  opacity: var(--invert-opacity);
+  background: radial-gradient(
+    circle var(--invert-size) at var(--cursor-x) var(--cursor-y),
+    #ffffff 0,
+    #ffffff 62%,
+    rgba(255, 255, 255, 0) 74%
+  );
+  mix-blend-mode: difference;
+  transition: opacity 120ms ease;
 }
 
 .page-views {
   min-height: calc(100vh - var(--title-height));
+}
+
+[hidden] {
+  display: none !important;
 }
 
 .title-bar {
@@ -88,12 +114,6 @@ body.is-resizing {
 
 body::-webkit-scrollbar {
   display: none;
-}
-
-@media (hover: hover) {
-  body:hover {
-    filter: invert(1);
-  }
 }
 
 #bubble-grid {
