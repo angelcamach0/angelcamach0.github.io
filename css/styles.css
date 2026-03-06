@@ -85,25 +85,40 @@ body::-webkit-scrollbar {
 
 .bubble__handle {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
+  right: 10px;
+  bottom: 10px;
   z-index: 2;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
   border: 0;
-  border-radius: 5px;
-  background: var(--outline);
+  background: transparent;
   cursor: nwse-resize;
-  opacity: 0.9;
+  opacity: 0.95;
   touch-action: none;
+  appearance: none;
 }
 
 .bubble__handle::before {
   content: "";
   position: absolute;
-  inset: 4px;
-  border-right: 2px solid #2a251d;
-  border-bottom: 2px solid #2a251d;
+  inset: 0;
+  background: var(--outline);
+  clip-path: polygon(100% 0, 0 100%, 100% 100%);
+}
+
+.bubble__handle::after {
+  content: "";
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 9px;
+  height: 9px;
+  background:
+    linear-gradient(135deg, transparent 0 38%, #2a251d 38% 48%, transparent 48% 100%),
+    linear-gradient(135deg, transparent 0 62%, #2a251d 62% 72%, transparent 72% 100%);
+  clip-path: polygon(100% 0, 0 100%, 100% 100%);
+  pointer-events: none;
 }
 
 @media (max-width: 720px) {
@@ -117,14 +132,17 @@ body::-webkit-scrollbar {
   }
 
   .bubble__handle {
-    right: 10px;
-    bottom: 10px;
-    width: 20px;
-    height: 20px;
+    right: 8px;
+    bottom: 8px;
+    width: 16px;
+    height: 16px;
   }
 
-  .bubble__handle::before {
-    inset: 3px;
+  .bubble__handle::after {
+    right: 2px;
+    bottom: 2px;
+    width: 7px;
+    height: 7px;
   }
 
   .bubble__label {
