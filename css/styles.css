@@ -471,7 +471,7 @@ body::-webkit-scrollbar {
 
 #home-description {
   position: absolute;
-  top: clamp(12rem, 30vw, 18rem);
+  top: clamp(9.75rem, 24vw, 14.5rem);
   left: 0;
   z-index: 2;
   max-width: clamp(18rem, 32vw, 34rem);
