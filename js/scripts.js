@@ -40,18 +40,18 @@
             const startY = event.clientY;
             const startCols = Number(bubble.dataset.colSpan) || 1;
             const startRows = Number(bubble.dataset.rowSpan) || 1;
-            const startWidth = startCols * startMetrics.cellSize + startMetrics.gap * (startCols - 1);
-            const startHeight = startRows * startMetrics.cellSize + startMetrics.gap * (startRows - 1);
             const trackSize = startMetrics.cellSize + startMetrics.gap;
+            const step = Math.max(24, trackSize * 0.35);
 
+            document.body.classList.add("is-resizing");
             bubble.classList.add("is-resizing");
             handle.setPointerCapture(event.pointerId);
 
             function onPointerMove(moveEvent) {
-                const nextWidth = Math.max(startMetrics.cellSize, startWidth + (moveEvent.clientX - startX));
-                const nextHeight = Math.max(startMetrics.cellSize, startHeight + (moveEvent.clientY - startY));
-                const nextColSpan = Math.max(1, Math.min(startMetrics.cols, Math.round((nextWidth + startMetrics.gap) / trackSize)));
-                const nextRowSpan = Math.max(1, Math.round((nextHeight + startMetrics.gap) / trackSize));
+                const deltaCols = Math.round((moveEvent.clientX - startX) / step);
+                const deltaRows = Math.round((moveEvent.clientY - startY) / step);
+                const nextColSpan = Math.max(1, Math.min(startMetrics.cols, startCols + deltaCols));
+                const nextRowSpan = Math.max(1, startRows + deltaRows);
 
                 bubble.dataset.colSpan = String(nextColSpan);
                 bubble.dataset.rowSpan = String(nextRowSpan);
@@ -59,16 +59,17 @@
             }
 
             function stopResize() {
+                document.body.classList.remove("is-resizing");
                 bubble.classList.remove("is-resizing");
-                window.removeEventListener("pointermove", onPointerMove);
-                window.removeEventListener("pointerup", stopResize);
-                window.removeEventListener("pointercancel", stopResize);
+                document.removeEventListener("pointermove", onPointerMove);
+                document.removeEventListener("pointerup", stopResize);
+                document.removeEventListener("pointercancel", stopResize);
                 requestSync();
             }
 
-            window.addEventListener("pointermove", onPointerMove);
-            window.addEventListener("pointerup", stopResize);
-            window.addEventListener("pointercancel", stopResize);
+            document.addEventListener("pointermove", onPointerMove);
+            document.addEventListener("pointerup", stopResize);
+            document.addEventListener("pointercancel", stopResize);
         });
     }
 
