@@ -791,6 +791,16 @@ body::-webkit-scrollbar {
   margin: 0 0 0.55rem;
 }
 
+.bubble__preview-markdown strong,
+.bubble__preview-markdown em,
+.bubble__preview-markdown a {
+  color: #f3e7c2;
+}
+
+.bubble__preview-markdown a {
+  text-decoration-color: rgba(243, 231, 194, 0.45);
+}
+
 .bubble__preview-markdown ul,
 .bubble__preview-markdown ol {
   padding-left: 1.15rem;

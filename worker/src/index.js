@@ -8,6 +8,7 @@ const ALLOWED_TYPES = new Set([
 ]);
 
 const META_FILENAME = "meta.json";
+const PREVIEW_BYTE_LIMIT = 24576;
 
 function buildCorsHeaders(extraHeaders = {}) {
     const headers = new Headers(extraHeaders);
@@ -82,6 +83,13 @@ function inferMimeType(filename) {
     if (lower.endsWith(".sh")) return "text/plain; charset=utf-8";
 
     return "application/octet-stream";
+}
+
+function normalizeMimeType(value) {
+    return String(value || "")
+        .split(";")[0]
+        .trim()
+        .toLowerCase();
 }
 
 async function listAllObjects(bucket) {
@@ -183,6 +191,10 @@ function buildAssetUrl(requestUrl, key) {
     return new URL(`/api/content/${encodeURIComponent(key)}`, requestUrl).toString();
 }
 
+function buildPreviewUrl(requestUrl, key) {
+    return new URL(`/api/preview/${encodeURIComponent(key)}`, requestUrl).toString();
+}
+
 async function buildCatalog(request, bucket) {
     const objects = await listAllObjects(bucket);
     const groups = groupBucketObjects(objects);
@@ -212,8 +224,9 @@ async function buildCatalog(request, bucket) {
             path: asset.key,
             tags: normalizeTags(meta.tags, group.type),
             href: buildAssetUrl(request.url, asset.key),
+            previewHref: buildPreviewUrl(request.url, asset.key),
             order,
-            mimeType: inferMimeType(asset.fileName),
+            mimeType: normalizeMimeType(inferMimeType(asset.fileName)),
             size: asset.size,
             uploadedAt: asset.uploaded ? new Date(asset.uploaded).toISOString() : null,
         });
@@ -225,8 +238,8 @@ async function buildCatalog(request, bucket) {
     });
 }
 
-function decodeContentKey(pathname) {
-    const encodedKey = pathname.replace(/^\/api\/content\//, "");
+function decodeObjectKey(pathname, prefix) {
+    const encodedKey = pathname.replace(prefix, "");
     if (!encodedKey) return "";
 
     try {
@@ -246,7 +259,7 @@ async function handleCatalog(request, env) {
 }
 
 async function handleContent(request, env) {
-    const key = decodeContentKey(new URL(request.url).pathname);
+    const key = decodeObjectKey(new URL(request.url).pathname, /^\/api\/content\//);
     if (!key) {
         return textResponse("Missing content key", {
             status: 400,
@@ -275,6 +288,51 @@ async function handleContent(request, env) {
 
     return new Response(object.body, {
         headers,
+    });
+}
+
+async function handlePreview(request, env) {
+    const key = decodeObjectKey(new URL(request.url).pathname, /^\/api\/preview\//);
+    if (!key) {
+        return textResponse("Missing content key", {
+            status: 400,
+        });
+    }
+
+    const mimeType = normalizeMimeType(inferMimeType(key));
+    const previewable = mimeType === "text/markdown"
+        || mimeType.startsWith("text/")
+        || mimeType === "application/json";
+
+    if (!previewable) {
+        return textResponse("Preview unsupported", {
+            status: 415,
+        });
+    }
+
+    const object = await env.CONTENT_BUCKET.get(key, {
+        range: {
+            offset: 0,
+            length: PREVIEW_BYTE_LIMIT,
+        },
+    });
+
+    if (!object) {
+        return textResponse("Not found", {
+            status: 404,
+        });
+    }
+
+    const text = await object.text();
+    return jsonResponse({
+        key,
+        mimeType,
+        text,
+        truncated: text.length >= PREVIEW_BYTE_LIMIT,
+    }, {
+        headers: {
+            "Cache-Control": "public, max-age=300",
+        },
     });
 }
 
@@ -310,6 +368,10 @@ export default {
 
         if (url.pathname.startsWith("/api/content/")) {
             return handleContent(request, env);
+        }
+
+        if (url.pathname.startsWith("/api/preview/")) {
+            return handlePreview(request, env);
         }
 
         return textResponse("Not found", {

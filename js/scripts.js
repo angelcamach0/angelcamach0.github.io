@@ -152,19 +152,27 @@
         return slug || fallback;
     }
 
+    function normalizeMimeType(value) {
+        return String(value || "")
+            .split(";")[0]
+            .trim()
+            .toLowerCase();
+    }
+
     function normalizeTileRecord(rawTile, index) {
         const type = normalizeTileType(rawTile?.type) || "note";
         const title = String(rawTile?.title || `Untitled ${index + 1}`).trim();
         const summary = String(rawTile?.summary || "No summary yet.").trim();
         const repo = String(rawTile?.repo || "").trim();
         const path = String(rawTile?.path || "").trim();
-        const mimeType = String(rawTile?.mimeType || rawTile?.mime_type || "").trim().toLowerCase();
+        const mimeType = normalizeMimeType(rawTile?.mimeType || rawTile?.mime_type || "");
         const tags = Array.isArray(rawTile?.tags)
             ? rawTile.tags
                 .map((tag) => String(tag || "").trim().toLowerCase())
                 .filter(Boolean)
             : [];
         const href = String(rawTile?.href || "").trim();
+        const previewHref = String(rawTile?.previewHref || rawTile?.preview_href || "").trim();
         const id = createSlug(rawTile?.id || title, `tile-${index + 1}`);
         const order = Number.isFinite(Number(rawTile?.order)) ? Number(rawTile.order) : index;
         const size = Number.isFinite(Number(rawTile?.size)) ? Number(rawTile.size) : 0;
@@ -179,6 +187,7 @@
             mimeType,
             tags,
             href,
+            previewHref,
             order,
             size,
         };
@@ -206,7 +215,7 @@
     }
 
     function getTileMimeType(tile) {
-        return tile?.mimeType || inferMimeTypeFromPath(tile?.path || tile?.href || "");
+        return normalizeMimeType(tile?.mimeType || inferMimeTypeFromPath(tile?.path || tile?.href || ""));
     }
 
     function getTilePreviewMode(tile) {
@@ -2023,14 +2032,19 @@
             mode,
         });
 
-        const request = fetch(tile.href, {
+        const previewUrl = tile.previewHref || tile.href;
+        const request = fetch(previewUrl, {
             headers: {
-                accept: "text/plain, text/markdown, application/json, text/javascript, */*",
+                accept: "application/json, text/plain, text/markdown, text/javascript, */*",
             },
         })
             .then((response) => {
                 if (!response.ok) {
                     throw new Error(`preview request failed: ${response.status}`);
+                }
+                const responseType = normalizeMimeType(response.headers.get("content-type"));
+                if (responseType === "application/json") {
+                    return response.json().then((payload) => String(payload?.text || ""));
                 }
                 return response.text();
             })
