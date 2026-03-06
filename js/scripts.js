@@ -14,6 +14,16 @@
 
     const extraScrollScreens = 2;
     const terminalPrompt = "friend@thearkprojects:~$";
+    const viewChain = [
+        "home",
+        "grid",
+        "terminal",
+    ];
+    const viewNeighbors = {
+        home: { left: null, right: "grid" },
+        grid: { left: "home", right: "terminal" },
+        terminal: { left: "grid", right: null },
+    };
     let homeTitleText = homeStage?.getAttribute("aria-label") || "Welcome";
     const welcomeBodies = [];
     const gravity = 2200;
@@ -55,10 +65,24 @@
     }
 
     function getViewOrder(viewName) {
-        if (viewName === "home") return 0;
-        if (viewName === "grid") return 1;
-        if (viewName === "terminal") return 2;
-        return 0;
+        const index = viewChain.indexOf(viewName);
+        return index === -1 ? 0 : index;
+    }
+
+    function getEntranceClass(currentView, nextView) {
+        const currentNeighbors = viewNeighbors[currentView] || viewNeighbors.home;
+
+        if (currentNeighbors.right === nextView) {
+            return "is-entering-from-right";
+        }
+
+        if (currentNeighbors.left === nextView) {
+            return "is-entering-from-left";
+        }
+
+        const currentOrder = getViewOrder(currentView);
+        const nextOrder = getViewOrder(nextView);
+        return nextOrder > currentOrder ? "is-entering-from-right" : "is-entering-from-left";
     }
 
     function getPreferredTerminalInstance(viewName) {
@@ -117,9 +141,7 @@
     function renderView() {
         const nextView = getActiveView();
         const enteringView = getEnteringView(nextView);
-        const currentOrder = getViewOrder(activeView);
-        const nextOrder = getViewOrder(nextView);
-        const entranceClass = nextOrder > currentOrder ? "is-entering-from-left" : "is-entering-from-right";
+        const entranceClass = getEntranceClass(activeView, nextView);
 
         grid.hidden = nextView !== "grid";
         if (homeView) {
