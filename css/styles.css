@@ -2,6 +2,7 @@
   --outline: #d7c7a4;
   --background: #cfcdc6;
   --bubble: #050505;
+  --title-height: 64px;
   --gap: 8px;
   --radius: 14px;
 }
@@ -26,6 +27,51 @@ body {
   background: var(--background);
 }
 
+.title-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--title-height);
+  padding: 0 18px;
+  background: #050505;
+  border-bottom: 2px solid var(--outline);
+}
+
+.title-bar__brand,
+.title-bar__nav a {
+  color: var(--outline);
+  font-family: "Courier New", "Lucida Console", monospace;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.title-bar__brand {
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.title-bar__nav {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.title-bar__nav a {
+  font-size: 0.78rem;
+  opacity: 0.92;
+}
+
+.title-bar__brand:hover,
+.title-bar__nav a:hover {
+  color: #efe2c6;
+}
+
 body.is-resizing {
   user-select: none;
   cursor: nwse-resize;
@@ -37,7 +83,7 @@ body::-webkit-scrollbar {
 
 #bubble-grid {
   width: 100vw;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--title-height));
   display: grid;
   grid-auto-flow: dense;
   gap: var(--gap);
@@ -125,6 +171,23 @@ body::-webkit-scrollbar {
   :root {
     --gap: 6px;
     --radius: 10px;
+    --title-height: 56px;
+  }
+
+  .title-bar {
+    padding: 0 12px;
+  }
+
+  .title-bar__brand {
+    font-size: 0.9rem;
+  }
+
+  .title-bar__nav {
+    gap: 10px;
+  }
+
+  .title-bar__nav a {
+    font-size: 0.68rem;
   }
 
   .bubble {

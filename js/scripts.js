@@ -1,5 +1,6 @@
 (function () {
     const grid = document.getElementById("bubble-grid");
+    const titleBar = document.querySelector(".title-bar");
     if (!grid) return;
 
     const extraScrollScreens = 2;
@@ -14,7 +15,8 @@
         const styles = getComputedStyle(grid);
         const gap = parseFloat(styles.gap) || 0;
         const width = window.innerWidth;
-        const height = window.innerHeight;
+        const headerHeight = titleBar ? titleBar.getBoundingClientRect().height : 0;
+        const height = Math.max(0, window.innerHeight - headerHeight);
         const cols = getColumnCount(width);
         const cellSize = (width - gap * (cols - 1)) / cols;
 
