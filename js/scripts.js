@@ -1619,6 +1619,7 @@
         bubble.classList.remove("bubble--content", "bubble--empty");
         bubble.dataset.tileId = "__terminal__";
         bubble.dataset.tileType = "terminal";
+        clearBubbleAction(bubble);
 
         let shell = bubble.querySelector("[data-terminal-shell]");
         if (!shell) {
@@ -1643,6 +1644,7 @@
         bubble.className = "bubble";
         bubble.dataset.colSpan = "1";
         bubble.dataset.rowSpan = "1";
+        bubble.tabIndex = -1;
 
         label.className = "bubble__label";
         label.textContent = "00-0A";
@@ -1674,6 +1676,47 @@
         return bubble;
     }
 
+    function openTile(tile) {
+        if (!tile?.href || tile.virtual) return;
+        window.open(tile.href, "_blank", "noopener,noreferrer");
+    }
+
+    function clearBubbleAction(bubble) {
+        bubble.classList.remove("bubble--link");
+        bubble.removeAttribute("data-href");
+        bubble.removeAttribute("role");
+        bubble.removeAttribute("aria-label");
+        bubble.tabIndex = -1;
+        bubble.onclick = null;
+        bubble.onkeydown = null;
+    }
+
+    function attachBubbleAction(bubble, tile) {
+        clearBubbleAction(bubble);
+
+        if (!tile?.href || tile.virtual) {
+            return;
+        }
+
+        bubble.classList.add("bubble--link");
+        bubble.dataset.href = tile.href;
+        bubble.setAttribute("role", "link");
+        bubble.setAttribute("aria-label", `Open ${tile.title}`);
+        bubble.tabIndex = 0;
+        bubble.onclick = (event) => {
+            if (event.target instanceof HTMLElement && event.target.closest(".bubble__handle")) {
+                return;
+            }
+
+            openTile(tile);
+        };
+        bubble.onkeydown = (event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            openTile(tile);
+        };
+    }
+
     function renderBubbleTags(container, tags) {
         if (!container) return;
 
@@ -1701,6 +1744,7 @@
         bubble.dataset.tileType = tile.type;
         bubble.dataset.repo = tile.repo;
         bubble.dataset.path = tile.path;
+        attachBubbleAction(bubble, tile);
 
         if (label) {
             label.textContent = getBubbleTitle(slotIndex);

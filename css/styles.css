@@ -577,6 +577,27 @@ body::-webkit-scrollbar {
   transform: none;
 }
 
+.bubble--link {
+  cursor: pointer;
+}
+
+.bubble--link:hover {
+  transform: translateY(-2px);
+  border-color: #f0e3c1;
+  box-shadow:
+    0 0 0 1px rgba(240, 227, 193, 0.18),
+    0 18px 32px rgba(8, 8, 8, 0.18);
+}
+
+.bubble--link:focus-visible {
+  outline: none;
+  border-color: #f4ead0;
+  box-shadow:
+    0 0 0 1px rgba(244, 234, 208, 0.42),
+    0 0 0 4px rgba(215, 199, 164, 0.16),
+    0 14px 28px rgba(8, 8, 8, 0.14);
+}
+
 .bubble--terminal .bubble__label {
   z-index: 3;
 }
