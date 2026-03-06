@@ -52,6 +52,7 @@ body::after {
 
 .page-views {
   min-height: calc(100vh - var(--title-height));
+  padding-top: var(--title-height);
 }
 
 [hidden] {
@@ -95,13 +96,16 @@ body::after {
 }
 
 .title-bar {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 20;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 22px;
+  width: 100%;
   min-height: var(--title-height);
   padding: 0 18px;
   background: #050505;
