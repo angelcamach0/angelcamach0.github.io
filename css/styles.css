@@ -670,20 +670,28 @@ body::-webkit-scrollbar {
   height: 100%;
   min-width: 0;
   min-height: 0;
+  border-radius: var(--radius);
+  transition: transform 220ms ease;
+  overflow: hidden;
+}
+
+.bubble__surface {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
   background:
     linear-gradient(165deg, rgba(9, 11, 13, 0.84), rgba(4, 5, 7, 0.52)),
     rgba(248, 240, 224, 0.01);
   border: 1px solid rgba(230, 220, 194, 0.32);
-  border-radius: var(--radius);
   box-shadow:
     0 12px 28px rgba(34, 30, 24, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
     inset 0 -1px 0 rgba(255, 255, 255, 0.04);
-  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease, background-color 220ms ease;
-  overflow: hidden;
+  transition: border-color 220ms ease, box-shadow 220ms ease, background-color 220ms ease;
 }
 
-.bubble::before {
+.bubble__surface::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -698,7 +706,7 @@ body::-webkit-scrollbar {
 }
 
 @supports ((-webkit-backdrop-filter: blur(8px)) or (backdrop-filter: blur(8px))) {
-  .bubble {
+  .bubble__surface {
     -webkit-backdrop-filter: blur(10px) saturate(118%);
     backdrop-filter: blur(10px) saturate(118%);
   }
@@ -706,6 +714,9 @@ body::-webkit-scrollbar {
 
 .bubble:hover {
   transform: translateY(-3px) scale(0.995);
+}
+
+.bubble:hover .bubble__surface {
   border-color: rgba(244, 233, 205, 0.44);
   box-shadow:
     0 18px 34px rgba(34, 30, 24, 0.18),
@@ -713,7 +724,7 @@ body::-webkit-scrollbar {
     inset 0 -1px 0 rgba(255, 255, 255, 0.05);
 }
 
-.bubble:hover::before {
+.bubble:hover .bubble__surface::before {
   opacity: 1;
   transform: translate3d(0, -2px, 0);
 }
@@ -737,6 +748,9 @@ body::-webkit-scrollbar {
 
 .bubble--link:hover {
   transform: translateY(-4px);
+}
+
+.bubble--link:hover .bubble__surface {
   border-color: rgba(244, 233, 205, 0.52);
   box-shadow:
     0 0 0 1px rgba(240, 227, 193, 0.14),
@@ -745,6 +759,9 @@ body::-webkit-scrollbar {
 
 .bubble--link:focus-visible {
   outline: none;
+}
+
+.bubble--link:focus-visible .bubble__surface {
   border-color: #f4ead0;
   box-shadow:
     0 0 0 1px rgba(244, 234, 208, 0.42),
@@ -768,7 +785,7 @@ body::-webkit-scrollbar {
   position: absolute;
   top: 12px;
   left: 14px;
-  z-index: 1;
+  z-index: 2;
   color: var(--outline);
   font-family: "Courier New", "Lucida Console", monospace;
   font-weight: 700;
@@ -782,7 +799,7 @@ body::-webkit-scrollbar {
 .bubble__content {
   position: absolute;
   inset: 42px 14px 18px;
-  z-index: 1;
+  z-index: 2;
   display: none;
   flex-direction: column;
   gap: 8px;

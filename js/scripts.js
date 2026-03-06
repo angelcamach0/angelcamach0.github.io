@@ -1936,6 +1936,7 @@
 
     function createBubble(cols) {
         const bubble = document.createElement("article");
+        const surface = document.createElement("div");
         const label = document.createElement("span");
         const content = document.createElement("div");
         const kind = document.createElement("span");
@@ -1950,6 +1951,9 @@
         bubble.dataset.colSpan = "1";
         bubble.dataset.rowSpan = "1";
         bubble.tabIndex = -1;
+
+        surface.className = "bubble__surface";
+        surface.setAttribute("aria-hidden", "true");
 
         label.className = "bubble__label";
         label.textContent = "00-0A";
@@ -1975,6 +1979,7 @@
         handle.type = "button";
         handle.setAttribute("aria-label", "Resize bubble");
 
+        bubble.appendChild(surface);
         bubble.appendChild(label);
         bubble.appendChild(content);
         bubble.appendChild(handle);
