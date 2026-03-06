@@ -54,6 +54,13 @@
         return homeView;
     }
 
+    function getViewOrder(viewName) {
+        if (viewName === "home") return 0;
+        if (viewName === "grid") return 1;
+        if (viewName === "terminal") return 2;
+        return 0;
+    }
+
     function getPreferredTerminalInstance(viewName) {
         return terminalInstances.find((instance) => instance.view === viewName) || terminalInstances[0] || null;
     }
@@ -110,7 +117,9 @@
     function renderView() {
         const nextView = getActiveView();
         const enteringView = getEnteringView(nextView);
-        const entranceClass = nextView === "home" ? "is-entering-from-left" : "is-entering-from-right";
+        const currentOrder = getViewOrder(activeView);
+        const nextOrder = getViewOrder(nextView);
+        const entranceClass = nextOrder > currentOrder ? "is-entering-from-left" : "is-entering-from-right";
 
         grid.hidden = nextView !== "grid";
         if (homeView) {
