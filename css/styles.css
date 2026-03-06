@@ -178,7 +178,8 @@ body::-webkit-scrollbar {
   top: 0;
   right: 0;
   z-index: 3;
-  width: min(360px, 30vw);
+  width: clamp(420px, 44vw, 680px);
+  max-width: calc(100vw - 56px);
 }
 
 .terminal-view {
@@ -192,6 +193,7 @@ body::-webkit-scrollbar {
   padding: clamp(18px, 2.5vw, 28px);
   background: #050505;
   border: 2px solid var(--outline);
+  border-radius: 28px;
   box-shadow: 0 20px 42px rgba(0, 0, 0, 0.18);
   color: var(--outline);
   font-family: "Courier New", "Lucida Console", monospace;
@@ -205,6 +207,7 @@ body::-webkit-scrollbar {
 .terminal-shell--sidebar {
   min-height: clamp(360px, 62vh, 640px);
   max-height: calc(100vh - var(--title-height) - 56px);
+  border-radius: 32px;
 }
 
 .terminal-history {
