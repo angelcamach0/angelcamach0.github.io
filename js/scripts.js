@@ -3,14 +3,22 @@
     const grid = document.getElementById("bubble-grid");
     if (!grid) return;
 
-    const targetSize = 130; // px, mid of updated clamp range
-    const overscan = 8;     // add a few extra so edges stay filled
+    const minSize = 120; // minimum target square size in px
+    const overscan = 8;  // extra cells to avoid gaps during resize
 
     function fillGrid() {
+        const style = getComputedStyle(grid);
+        const gap = parseFloat(style.gap) || 0;
         const w = grid.clientWidth || window.innerWidth;
         const h = window.innerHeight;
-        const cols = Math.max(1, Math.round(w / targetSize));
-        const rows = Math.max(1, Math.round(h / targetSize));
+
+        const cols = Math.max(1, Math.floor((w + gap) / (minSize + gap)));
+        // Set columns explicitly so squares stretch to fill horizontally
+        grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+        const colSize = (w - gap * (cols - 1)) / cols;
+        const rows = Math.max(1, Math.ceil((h + gap) / (colSize + gap)));
+
         const needed = cols * rows + overscan;
         const current = grid.children.length;
 
