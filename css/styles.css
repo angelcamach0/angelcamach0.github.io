@@ -118,6 +118,7 @@ body::after {
   gap: 12px;
   flex: 0 0 auto;
   min-width: 0;
+  margin-left: auto;
 }
 
 .title-bar__metric {
@@ -147,15 +148,8 @@ body::after {
   font-size: 0.82rem;
 }
 
-.title-bar__actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .title-bar__brand,
-.title-bar__nav a,
-.title-bar__action {
+.title-bar__nav a {
   color: var(--outline);
   font-family: "Courier New", "Lucida Console", monospace;
   font-weight: 700;
@@ -169,23 +163,11 @@ body::after {
   font-size: 1rem;
   flex: 0 0 auto;
   white-space: nowrap;
-}
-
-.title-bar__action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 1.75rem;
-  padding: 0.28rem 0.58rem;
-  background: transparent;
-  border: 1px solid rgba(215, 199, 164, 0.6);
-  border-radius: 999px;
-  font-size: 0.68rem;
-  cursor: pointer;
-}
-
-.title-bar__action--button {
-  appearance: none;
+  color: #f6edd4;
+  text-shadow:
+    0 0 8px rgba(246, 237, 212, 0.85),
+    0 0 18px rgba(246, 237, 212, 0.55),
+    0 0 34px rgba(246, 237, 212, 0.38);
 }
 
 .title-bar__nav {
@@ -227,13 +209,11 @@ body::after {
 }
 
 .title-bar__brand:hover,
-.title-bar__nav a:hover,
-.title-bar__action:hover {
+.title-bar__nav a:hover {
   color: #efe2c6;
 }
 
-.title-bar__nav a:hover,
-.title-bar__action:hover {
+.title-bar__nav a:hover {
   border-color: rgba(215, 199, 164, 0.35);
 }
 
@@ -695,16 +675,6 @@ body::-webkit-scrollbar {
 
   .title-bar__value--time {
     font-size: 0.72rem;
-  }
-
-  .title-bar__actions {
-    gap: 6px;
-  }
-
-  .title-bar__action {
-    min-height: 1.65rem;
-    padding: 0.22rem 0.45rem;
-    font-size: 0.62rem;
   }
 
   .title-bar__brand {

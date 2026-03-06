@@ -4,11 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dynamic Bubbles</title>
-    <link rel="stylesheet" href="css/styles.css?v=grid43" />
+    <link rel="stylesheet" href="css/styles.css?v=grid44" />
 </head>
 <body>
     <header class="title-bar" id="top">
-        <section class="title-bar__meta" aria-label="Texas weather and links">
+        <a class="title-bar__brand" href="#home">The Ark Projects</a>
+        <nav class="title-bar__nav" aria-label="Primary navigation">
+            <a href="#grid" data-view="grid">Grid</a>
+            <a href="#terminal" data-view="terminal">Terminal</a>
+        </nav>
+        <section class="title-bar__meta" aria-label="Texas weather and time">
             <div class="title-bar__metric">
                 <span class="title-bar__label">Texas</span>
                 <span class="title-bar__value" data-texas-temp>--&deg;F</span>
@@ -17,16 +22,7 @@
                 <span class="title-bar__label">Time</span>
                 <time class="title-bar__value title-bar__value--time" data-texas-time>00:00:00</time>
             </div>
-            <div class="title-bar__actions">
-                <a class="title-bar__action" href="https://github.com/angelcamach0" target="_blank" rel="noreferrer">GitHub</a>
-                <button class="title-bar__action title-bar__action--button" type="button" data-resume-button>Resume</button>
-            </div>
         </section>
-        <a class="title-bar__brand" href="#home">The Ark Projects</a>
-        <nav class="title-bar__nav" aria-label="Primary navigation">
-            <a href="#grid" data-view="grid">Grid</a>
-            <a href="#terminal" data-view="terminal">Terminal</a>
-        </nav>
     </header>
     <main class="page-views">
         <section id="bubble-grid" class="page-view" aria-label="dynamic bubble grid"></section>
@@ -64,6 +60,6 @@
             </div>
         </section>
     </main>
-    <script src="js/scripts.js?v=grid42"></script>
+    <script src="js/scripts.js?v=grid44"></script>
 </body>
 </html>

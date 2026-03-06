@@ -7,7 +7,6 @@
     const homeDescription = document.getElementById("home-description");
     const texasTemp = document.querySelector("[data-texas-temp]");
     const texasTime = document.querySelector("[data-texas-time]");
-    const resumeButton = document.querySelector("[data-resume-button]");
     const welcomeLetters = document.getElementById("welcome-letters");
     const titleBar = document.querySelector(".title-bar");
     const titleBarNav = document.querySelector(".title-bar__nav");
@@ -1570,9 +1569,6 @@
     loadTexasWeather();
     window.setInterval(updateTexasTime, 1000);
     window.setInterval(loadTexasWeather, 30 * 60 * 1000);
-    if (resumeButton) {
-        resumeButton.title = "Add a resume file or URL to enable this button";
-    }
     window.addEventListener("resize", () => {
         requestSync();
         resetLetterLayout();
