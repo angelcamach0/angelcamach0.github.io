@@ -2,8 +2,8 @@
   --outline: #e6dcc2;
   --outline-soft: rgba(230, 220, 194, 0.34);
   --ink: #161616;
-  --background: #aaa59a;
-  --background-deep: #7f796e;
+  --background: #beb6a4;
+  --background-deep: #9f9786;
   --bubble: rgba(9, 10, 12, 0.72);
   --bubble-deep: rgba(4, 5, 7, 0.82);
   --glass-cream: rgba(247, 241, 226, 0.05);
@@ -31,14 +31,14 @@ body {
   margin: 0;
   overflow-x: hidden;
   scrollbar-width: none;
-  background: #7f796e;
+  background: linear-gradient(180deg, var(--background) 0%, var(--background-deep) 100%);
 }
 
 body {
   position: relative;
   isolation: isolate;
   min-height: 100vh;
-  background: #7f796e;
+  background: linear-gradient(180deg, var(--background) 0%, var(--background-deep) 100%);
 }
 
 body::before {
@@ -671,8 +671,8 @@ body::-webkit-scrollbar {
   min-width: 0;
   min-height: 0;
   background:
-    linear-gradient(165deg, rgba(9, 11, 13, 0.9), rgba(4, 5, 7, 0.66)),
-    rgba(248, 240, 224, 0.02);
+    linear-gradient(165deg, rgba(9, 11, 13, 0.95), rgba(4, 5, 7, 0.84)),
+    rgba(248, 240, 224, 0.04);
   border: 1px solid rgba(230, 220, 194, 0.32);
   border-radius: var(--radius);
   box-shadow:
@@ -693,7 +693,7 @@ body::-webkit-scrollbar {
     linear-gradient(145deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012) 28%, rgba(255, 255, 255, 0) 48%),
     radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.03), transparent 34%),
     repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.009) 0 9px, rgba(255, 255, 255, 0.003) 9px 18px);
-  opacity: 0.42;
+  opacity: 0.3;
   transition: opacity 220ms ease, transform 220ms ease;
 }
 
