@@ -248,7 +248,7 @@ body::after {
     0 0 26px rgba(246, 237, 212, 0.82),
     0 0 48px rgba(246, 237, 212, 0.7),
     0 0 84px rgba(246, 237, 212, 0.52);
-  animation: brand-pulse 4.8s ease-in-out infinite;
+  animation: brand-pulse 4.8s ease-in-out infinite, brand-flicker 6.4s steps(1, end) infinite;
 }
 
 .title-bar__nav {
@@ -317,6 +317,35 @@ body::after {
       0 0 34px rgba(246, 237, 212, 0.95),
       0 0 62px rgba(246, 237, 212, 0.82),
       0 0 112px rgba(246, 237, 212, 0.64);
+  }
+}
+
+@keyframes brand-flicker {
+  0%,
+  14%,
+  16%,
+  27%,
+  29%,
+  52%,
+  54%,
+  77%,
+  79%,
+  100% {
+    opacity: 1;
+  }
+
+  14.5%,
+  27.5%,
+  52.5%,
+  77.5% {
+    opacity: 0.78;
+  }
+
+  15%,
+  28%,
+  53%,
+  78% {
+    opacity: 0.92;
   }
 }
 
