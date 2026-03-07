@@ -75,6 +75,8 @@
     const tilePreviewCache = new Map();
     const tilePreviewRequests = new Map();
     let invertHideTimer = null;
+    let suppressTapUntil = 0;
+    let swipeNavigation = null;
     let tileFilter = {
         mode: "all",
         value: "all",
@@ -857,6 +859,107 @@
         const currentOrder = getPageIndex(currentView);
         const nextOrder = getPageIndex(nextView);
         return nextOrder > currentOrder ? "is-entering-from-right" : "is-entering-from-left";
+    }
+
+    function isSwipeNavigationEnabled() {
+        return window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 720;
+    }
+
+    function getAdjacentPageName(viewName, direction) {
+        const node = getPageNode(viewName);
+        if (!node) return null;
+        return direction === "next" ? node.next : node.prev;
+    }
+
+    function navigateToAdjacentPage(direction) {
+        const target = getAdjacentPageName(activeView, direction);
+        if (!target || target === activeView) return;
+        suppressTapUntil = Date.now() + 360;
+        window.location.hash = `#${target}`;
+    }
+
+    function shouldCaptureSwipeNavigation(target) {
+        if (!(target instanceof HTMLElement) || !pageViews?.contains(target)) {
+            return false;
+        }
+
+        if (target.closest(".title-bar, .bubble__handle")) {
+            return false;
+        }
+
+        return true;
+    }
+
+    function resetSwipeNavigation() {
+        swipeNavigation = null;
+    }
+
+    function beginSwipeNavigation(event) {
+        if (!isSwipeNavigationEnabled() || event.touches.length !== 1) {
+            resetSwipeNavigation();
+            return;
+        }
+
+        const touch = event.touches[0];
+        if (!shouldCaptureSwipeNavigation(event.target)) {
+            resetSwipeNavigation();
+            return;
+        }
+
+        swipeNavigation = {
+            startX: touch.clientX,
+            startY: touch.clientY,
+            lastX: touch.clientX,
+            lastY: touch.clientY,
+            axis: "",
+        };
+    }
+
+    function updateSwipeNavigation(event) {
+        if (!swipeNavigation || event.touches.length !== 1) {
+            return;
+        }
+
+        const touch = event.touches[0];
+        const deltaX = touch.clientX - swipeNavigation.startX;
+        const deltaY = touch.clientY - swipeNavigation.startY;
+
+        swipeNavigation.lastX = touch.clientX;
+        swipeNavigation.lastY = touch.clientY;
+
+        if (!swipeNavigation.axis) {
+            if (Math.abs(deltaX) < 12 && Math.abs(deltaY) < 12) {
+                return;
+            }
+
+            swipeNavigation.axis = Math.abs(deltaX) > Math.abs(deltaY) * 1.2 ? "x" : "y";
+        }
+
+        if (swipeNavigation.axis === "x") {
+            event.preventDefault();
+        }
+    }
+
+    function endSwipeNavigation() {
+        if (!swipeNavigation) {
+            return;
+        }
+
+        const deltaX = swipeNavigation.lastX - swipeNavigation.startX;
+        const deltaY = swipeNavigation.lastY - swipeNavigation.startY;
+        const axis = swipeNavigation.axis;
+        resetSwipeNavigation();
+
+        if (axis !== "x") {
+            return;
+        }
+
+        const threshold = Math.max(56, window.innerWidth * 0.14);
+        if (Math.abs(deltaX) < threshold || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) {
+            return;
+        }
+
+        navigateToAdjacentPage(deltaX < 0 ? "next" : "prev");
     }
 
     function getPreferredTerminalInstance(viewName) {
@@ -2012,6 +2115,11 @@
         bubble.setAttribute("aria-label", `Open ${tile.title}`);
         bubble.tabIndex = 0;
         bubble.onclick = (event) => {
+            if (Date.now() < suppressTapUntil) {
+                event.preventDefault();
+                return;
+            }
+
             if (event.target instanceof HTMLElement && event.target.closest(".bubble__handle")) {
                 return;
             }
@@ -2559,6 +2667,10 @@
     document.addEventListener("touchend", () => {
         hideCursorInvert(280);
     }, { passive: true });
+    pageViews?.addEventListener("touchstart", beginSwipeNavigation, { passive: true });
+    pageViews?.addEventListener("touchmove", updateSwipeNavigation, { passive: false });
+    pageViews?.addEventListener("touchend", endSwipeNavigation, { passive: true });
+    pageViews?.addEventListener("touchcancel", resetSwipeNavigation, { passive: true });
     document.addEventListener("pointerleave", hideCursorInvert);
     document.addEventListener("mouseout", (event) => {
         if (!event.relatedTarget) {
