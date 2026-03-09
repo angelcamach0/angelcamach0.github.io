@@ -204,6 +204,11 @@ body::after {
 }
 
 .title-bar__label {
+  display: inline-block;
+  max-width: 12ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: rgba(215, 199, 164, 0.65);
   font-family: "Courier New", "Lucida Console", monospace;
   font-size: 0.64rem;
@@ -402,6 +407,7 @@ body::-webkit-scrollbar {
 
 .terminal-shell {
   position: relative;
+  isolation: isolate;
   min-height: calc(100vh - var(--title-height) - 80px);
   padding: clamp(18px, 2.5vw, 28px);
   background:
@@ -428,12 +434,30 @@ body::-webkit-scrollbar {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 0;
   border-radius: inherit;
   pointer-events: none;
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012) 24%, rgba(255, 255, 255, 0) 52%),
     repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.008) 0 12px, rgba(255, 255, 255, 0.003) 12px 24px);
   opacity: 0.32;
+}
+
+.terminal-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.035), rgba(0, 0, 0, 0.18) 74%),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.018) 0 1px, rgba(0, 0, 0, 0.05) 1px 3px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(243, 231, 194, 0.075) 48%, rgba(255, 255, 255, 0) 52%, rgba(255, 255, 255, 0) 100%);
+  background-size: 100% 100%, 100% 4px, 100% 220%;
+  background-position: 50% 50%, 0 0, 0 -180%;
+  opacity: 0.16;
+  animation: terminal-crt-scan 9s linear infinite, terminal-crt-flicker 3.8s steps(4, end) infinite;
 }
 
 @supports ((-webkit-backdrop-filter: blur(12px)) or (backdrop-filter: blur(12px))) {
@@ -599,6 +623,32 @@ body::-webkit-scrollbar {
   50%,
   100% {
     opacity: 0;
+  }
+}
+
+@keyframes terminal-crt-scan {
+  0% {
+    background-position: 50% 50%, 0 0, 0 -180%;
+  }
+
+  100% {
+    background-position: 50% 50%, 0 0, 0 180%;
+  }
+}
+
+@keyframes terminal-crt-flicker {
+  0%,
+  19%,
+  21%,
+  62%,
+  64%,
+  100% {
+    opacity: 0.16;
+  }
+
+  20%,
+  63% {
+    opacity: 0.2;
   }
 }
 
@@ -1165,6 +1215,7 @@ body::-webkit-scrollbar {
 @media (prefers-reduced-motion: reduce) {
   body::before,
   .catalog-view__terminal,
+  .terminal-shell::after,
   .title-bar__brand,
   .page-view.is-entering-from-right,
   .page-view.is-entering-from-left {

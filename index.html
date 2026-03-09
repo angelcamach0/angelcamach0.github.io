@@ -3,9 +3,19 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dynamic Bubbles</title>
+    <title>The Ark Projects</title>
+    <link rel="canonical" href="https://thearkprojects.com/" />
     <meta name="ark-catalog-endpoint" content="https://ark-catalog-api.a-c-f05.workers.dev/api/catalog" />
-    <link rel="stylesheet" href="css/styles.css?v=grid70" />
+    <script>
+        (function () {
+            const { protocol, hostname, host, pathname, search, hash } = window.location;
+            const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+            if (protocol === "http:" && !isLocalhost) {
+                window.location.replace(`https://${host}${pathname}${search}${hash}`);
+            }
+        }());
+    </script>
+    <link rel="stylesheet" href="css/styles.css?v=grid71" />
 </head>
 <body>
     <header class="title-bar" id="top">
@@ -14,14 +24,14 @@
             <a href="#grid" data-view="grid">Grid</a>
             <a href="#terminal" data-view="terminal">Terminal</a>
         </nav>
-        <section class="title-bar__meta" aria-label="Texas weather and time">
+        <section class="title-bar__meta" aria-label="Local weather and time">
             <div class="title-bar__metric">
-                <span class="title-bar__label">Texas</span>
-                <span class="title-bar__value" data-texas-temp>--&deg;F</span>
+                <span class="title-bar__label" data-local-label>Local</span>
+                <span class="title-bar__value" data-local-temp>--&deg;</span>
             </div>
             <div class="title-bar__metric">
-                <span class="title-bar__label">Time</span>
-                <time class="title-bar__value title-bar__value--time" data-texas-time>00:00:00</time>
+                <span class="title-bar__label">Local Time</span>
+                <time class="title-bar__value title-bar__value--time" data-local-time>00:00:00</time>
             </div>
         </section>
     </header>
@@ -61,6 +71,6 @@
             </div>
         </section>
     </main>
-    <script src="js/scripts.js?v=grid58"></script>
+    <script src="js/scripts.js?v=grid59"></script>
 </body>
 </html>

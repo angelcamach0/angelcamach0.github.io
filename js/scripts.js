@@ -5,10 +5,12 @@
     const homeStage = document.getElementById("home-title");
     const homeTitleLabel = document.getElementById("home-title-label");
     const homeDescription = document.getElementById("home-description");
-    const texasTemp = document.querySelector("[data-texas-temp]");
-    const texasTime = document.querySelector("[data-texas-time]");
+    const localTemp = document.querySelector("[data-local-temp]");
+    const localTime = document.querySelector("[data-local-time]");
+    const localWeatherLabel = document.querySelector("[data-local-label]");
     const welcomeLetters = document.getElementById("welcome-letters");
     const titleBar = document.querySelector(".title-bar");
+    const titleBarMeta = document.querySelector(".title-bar__meta");
     const titleBarNav = document.querySelector(".title-bar__nav");
     const pageViews = document.querySelector(".page-views");
     const catalogEndpointMeta = document.querySelector('meta[name="ark-catalog-endpoint"]');
@@ -19,14 +21,15 @@
 
     const extraScrollScreens = 2;
     const terminalPrompt = "friend@thearkprojects:~$";
-    const texasTimeFormatter = new Intl.DateTimeFormat("en-US", {
+    const localTimeFormatter = new Intl.DateTimeFormat(undefined, {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
-        hour12: false,
-        timeZone: "America/Chicago",
     });
-    const texasWeatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=30.2672&longitude=-97.7431&current=temperature_2m&temperature_unit=fahrenheit";
+    const localTimeZone = localTimeFormatter.resolvedOptions().timeZone || "";
+    const weatherConfig = getWeatherConfig();
+    const weatherApiBaseUrl = "https://api.open-meteo.com/v1/forecast";
+    const reverseGeocodeApiUrl = "https://geocoding-api.open-meteo.com/v1/reverse";
     const tileCatalogFallbackUrl = "data/tiles.json";
     const tileCatalogRemoteUrl = catalogEndpointMeta?.content?.trim() || "";
     const tileTypeAliases = new Map([
@@ -77,22 +80,135 @@
     let invertHideTimer = null;
     let suppressTapUntil = 0;
     let swipeNavigation = null;
+    let localWeatherCoords = null;
     let tileFilter = {
         mode: "all",
         value: "all",
         label: "all",
     };
 
-    function updateTexasTime() {
-        if (!texasTime) return;
-        texasTime.textContent = texasTimeFormatter.format(new Date());
+    function getPreferredLocale() {
+        if (Array.isArray(navigator.languages) && navigator.languages.length > 0) {
+            return navigator.languages[0];
+        }
+
+        return navigator.language || "en-US";
     }
 
-    async function loadTexasWeather() {
-        if (!texasTemp) return;
+    function getWeatherConfig() {
+        const fahrenheitRegions = new Set(["BS", "BZ", "KY", "LR", "PW", "US"]);
+        const locale = getPreferredLocale();
+        let region = "";
+
+        if (typeof Intl.Locale === "function") {
+            try {
+                region = new Intl.Locale(locale).maximize().region || "";
+            } catch (error) {
+                region = "";
+            }
+        }
+
+        if (!region) {
+            region = locale.split(/[-_]/)[1] || "";
+        }
+
+        const useFahrenheit = fahrenheitRegions.has(region.toUpperCase());
+        return {
+            temperatureUnit: useFahrenheit ? "fahrenheit" : "celsius",
+            symbol: useFahrenheit ? "°F" : "°C",
+        };
+    }
+
+    function setLocalWeatherPlaceholder() {
+        if (!localTemp) return;
+        localTemp.textContent = `--${weatherConfig.symbol}`;
+    }
+
+    function setLocalLocationLabel(value) {
+        const label = String(value || "").trim() || "Local";
+
+        if (localWeatherLabel) {
+            localWeatherLabel.textContent = label;
+            localWeatherLabel.title = label;
+        }
+
+        if (titleBarMeta) {
+            titleBarMeta.setAttribute("aria-label", `${label} weather and local time`);
+        }
+    }
+
+    function formatLocationLabel(place) {
+        if (!place || typeof place !== "object") return "Local";
+
+        const primary = [
+            place.city,
+            place.name,
+            place.locality,
+            place.admin2,
+        ].find((value) => typeof value === "string" && value.trim());
+
+        const secondary = [
+            place.admin1,
+            place.country_code,
+        ].find((value) => typeof value === "string" && value.trim());
+
+        if (!primary) return "Local";
+        if (!secondary || String(primary).toLowerCase() === String(secondary).toLowerCase()) {
+            return String(primary).trim();
+        }
+
+        return `${String(primary).trim()}, ${String(secondary).trim()}`;
+    }
+
+    function updateLocalTime() {
+        if (!localTime) return;
+
+        const now = new Date();
+        localTime.textContent = localTimeFormatter.format(now);
+        localTime.dateTime = now.toISOString();
+        if (localTimeZone) {
+            localTime.title = localTimeZone.replace(/_/g, " ");
+        }
+    }
+
+    async function loadLocationLabel(latitude, longitude) {
+        const params = new URLSearchParams({
+            latitude: String(latitude),
+            longitude: String(longitude),
+            count: "1",
+            language: "en",
+            format: "json",
+        });
 
         try {
-            const response = await fetch(texasWeatherUrl, {
+            const response = await fetch(`${reverseGeocodeApiUrl}?${params.toString()}`, {
+                headers: {
+                    accept: "application/json",
+                },
+            });
+            if (!response.ok) {
+                throw new Error(`reverse geocode request failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setLocalLocationLabel(formatLocationLabel(data?.results?.[0]));
+        } catch (error) {
+            setLocalLocationLabel("Local");
+        }
+    }
+
+    async function loadLocalWeather(latitude, longitude) {
+        if (!localTemp) return;
+
+        const params = new URLSearchParams({
+            latitude: String(latitude),
+            longitude: String(longitude),
+            current: "temperature_2m",
+            temperature_unit: weatherConfig.temperatureUnit,
+        });
+
+        try {
+            const response = await fetch(`${weatherApiBaseUrl}?${params.toString()}`, {
                 headers: {
                     accept: "application/json",
                 },
@@ -103,9 +219,49 @@
 
             const data = await response.json();
             const temperature = data?.current?.temperature_2m;
-            texasTemp.textContent = Number.isFinite(temperature) ? `${Math.round(temperature)}°F` : "--°F";
+            localTemp.textContent = Number.isFinite(temperature)
+                ? `${Math.round(temperature)}${weatherConfig.symbol}`
+                : `--${weatherConfig.symbol}`;
         } catch (error) {
-            texasTemp.textContent = "--°F";
+            setLocalWeatherPlaceholder();
+        }
+    }
+
+    function refreshLocalWeather() {
+        if (!localWeatherCoords) return;
+        loadLocalWeather(localWeatherCoords.latitude, localWeatherCoords.longitude);
+    }
+
+    function loadUserLocationWeather() {
+        setLocalWeatherPlaceholder();
+        setLocalLocationLabel("Local");
+
+        if (!("geolocation" in navigator)) return;
+
+        navigator.geolocation.getCurrentPosition((position) => {
+            localWeatherCoords = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+            };
+
+            loadLocationLabel(localWeatherCoords.latitude, localWeatherCoords.longitude);
+            refreshLocalWeather();
+        }, () => {
+            setLocalWeatherPlaceholder();
+            setLocalLocationLabel("Local");
+        }, {
+            enableHighAccuracy: false,
+            timeout: 8000,
+            maximumAge: 15 * 60 * 1000,
+        });
+    }
+
+    function setInitialLocalMetaState() {
+        setLocalWeatherPlaceholder();
+        setLocalLocationLabel("Local");
+        updateLocalTime();
+        if (localTimeZone && localWeatherLabel && localWeatherLabel.textContent === "Local") {
+            localWeatherLabel.title = localTimeZone.replace(/_/g, " ");
         }
     }
 
@@ -814,7 +970,7 @@
     function initializePageChain() {
         appendPageNode(createPageNode("home", homeView, {
             navLabel: "Home",
-            showInNav: true,
+            showInNav: false,
             editable: true,
             kind: "home",
             titleEl: homeStage,
@@ -2621,10 +2777,10 @@
     renderTerminal();
     loadTileCatalog();
     buildWelcomeLetters();
-    updateTexasTime();
-    loadTexasWeather();
-    window.setInterval(updateTexasTime, 1000);
-    window.setInterval(loadTexasWeather, 30 * 60 * 1000);
+    setInitialLocalMetaState();
+    loadUserLocationWeather();
+    window.setInterval(updateLocalTime, 1000);
+    window.setInterval(refreshLocalWeather, 30 * 60 * 1000);
     window.addEventListener("resize", () => {
         requestSync();
         resetLetterLayout();
