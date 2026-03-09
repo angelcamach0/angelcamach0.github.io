@@ -27,9 +27,6 @@
         second: "2-digit",
     });
     const localTimeZone = localTimeFormatter.resolvedOptions().timeZone || "";
-    const weatherConfig = getWeatherConfig();
-    const weatherApiBaseUrl = "https://api.open-meteo.com/v1/forecast";
-    const reverseGeocodeApiUrl = "https://geocoding-api.open-meteo.com/v1/reverse";
     const tileCatalogFallbackUrl = "data/tiles.json";
     const tileCatalogRemoteUrl = catalogEndpointMeta?.content?.trim() || "";
     const tileTypeAliases = new Map([
@@ -80,9 +77,12 @@
     let invertHideTimer = null;
     let suppressTapUntil = 0;
     let swipeNavigation = null;
-    let localWeatherCoords = null;
+    let localWeatherController = null;
+    let localWeatherModulePromise = null;
     let localWeatherLoadStarted = false;
     let localWeatherLoadScheduled = false;
+    let tileCatalogLoader = null;
+    let tileCatalogLoaderPromise = null;
     let tileCatalogLoadPromise = null;
     let welcomeLettersBuilt = false;
     let tileFilter = {
@@ -90,79 +90,6 @@
         value: "all",
         label: "all",
     };
-
-    function getPreferredLocale() {
-        if (Array.isArray(navigator.languages) && navigator.languages.length > 0) {
-            return navigator.languages[0];
-        }
-
-        return navigator.language || "en-US";
-    }
-
-    function getWeatherConfig() {
-        const fahrenheitRegions = new Set(["BS", "BZ", "KY", "LR", "PW", "US"]);
-        const locale = getPreferredLocale();
-        let region = "";
-
-        if (typeof Intl.Locale === "function") {
-            try {
-                region = new Intl.Locale(locale).maximize().region || "";
-            } catch (error) {
-                region = "";
-            }
-        }
-
-        if (!region) {
-            region = locale.split(/[-_]/)[1] || "";
-        }
-
-        const useFahrenheit = fahrenheitRegions.has(region.toUpperCase());
-        return {
-            temperatureUnit: useFahrenheit ? "fahrenheit" : "celsius",
-            symbol: useFahrenheit ? "°F" : "°C",
-        };
-    }
-
-    function setLocalWeatherPlaceholder() {
-        if (!localTemp) return;
-        localTemp.textContent = `--${weatherConfig.symbol}`;
-    }
-
-    function setLocalLocationLabel(value) {
-        const label = String(value || "").trim() || "Local";
-
-        if (localWeatherLabel) {
-            localWeatherLabel.textContent = label;
-            localWeatherLabel.title = label;
-        }
-
-        if (titleBarMeta) {
-            titleBarMeta.setAttribute("aria-label", `${label} weather and local time`);
-        }
-    }
-
-    function formatLocationLabel(place) {
-        if (!place || typeof place !== "object") return "Local";
-
-        const primary = [
-            place.city,
-            place.name,
-            place.locality,
-            place.admin2,
-        ].find((value) => typeof value === "string" && value.trim());
-
-        const secondary = [
-            place.admin1,
-            place.country_code,
-        ].find((value) => typeof value === "string" && value.trim());
-
-        if (!primary) return "Local";
-        if (!secondary || String(primary).toLowerCase() === String(secondary).toLowerCase()) {
-            return String(primary).trim();
-        }
-
-        return `${String(primary).trim()}, ${String(secondary).trim()}`;
-    }
 
     function updateLocalTime() {
         if (!localTime) return;
@@ -175,98 +102,48 @@
         }
     }
 
-    async function loadLocationLabel(latitude, longitude) {
-        const params = new URLSearchParams({
-            latitude: String(latitude),
-            longitude: String(longitude),
-            count: "1",
-            language: "en",
-            format: "json",
-        });
-
-        try {
-            const response = await fetch(`${reverseGeocodeApiUrl}?${params.toString()}`, {
-                headers: {
-                    accept: "application/json",
-                },
-            });
-            if (!response.ok) {
-                throw new Error(`reverse geocode request failed: ${response.status}`);
-            }
-
-            const data = await response.json();
-            setLocalLocationLabel(formatLocationLabel(data?.results?.[0]));
-        } catch (error) {
-            setLocalLocationLabel("Local");
-        }
-    }
-
-    async function loadLocalWeather(latitude, longitude) {
-        if (!localTemp) return;
-
-        const params = new URLSearchParams({
-            latitude: String(latitude),
-            longitude: String(longitude),
-            current: "temperature_2m",
-            temperature_unit: weatherConfig.temperatureUnit,
-        });
-
-        try {
-            const response = await fetch(`${weatherApiBaseUrl}?${params.toString()}`, {
-                headers: {
-                    accept: "application/json",
-                },
-            });
-            if (!response.ok) {
-                throw new Error(`weather request failed: ${response.status}`);
-            }
-
-            const data = await response.json();
-            const temperature = data?.current?.temperature_2m;
-            localTemp.textContent = Number.isFinite(temperature)
-                ? `${Math.round(temperature)}${weatherConfig.symbol}`
-                : `--${weatherConfig.symbol}`;
-        } catch (error) {
-            setLocalWeatherPlaceholder();
-        }
-    }
-
-    function refreshLocalWeather() {
-        if (!localWeatherCoords) return;
-        loadLocalWeather(localWeatherCoords.latitude, localWeatherCoords.longitude);
-    }
-
-    function loadUserLocationWeather() {
-        setLocalWeatherPlaceholder();
-        setLocalLocationLabel("Local");
-
-        if (!("geolocation" in navigator)) return;
-
-        navigator.geolocation.getCurrentPosition((position) => {
-            localWeatherCoords = {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-            };
-
-            loadLocationLabel(localWeatherCoords.latitude, localWeatherCoords.longitude);
-            refreshLocalWeather();
-        }, () => {
-            setLocalWeatherPlaceholder();
-            setLocalLocationLabel("Local");
-        }, {
-            enableHighAccuracy: false,
-            timeout: 8000,
-            maximumAge: 15 * 60 * 1000,
-        });
-    }
-
     function setInitialLocalMetaState() {
-        setLocalWeatherPlaceholder();
-        setLocalLocationLabel("Local");
+        if (localTemp) {
+            localTemp.textContent = "--°";
+        }
+        if (localWeatherLabel) {
+            localWeatherLabel.textContent = "Local";
+        }
+        if (titleBarMeta) {
+            titleBarMeta.setAttribute("aria-label", "Local weather and time");
+        }
         updateLocalTime();
         if (localTimeZone && localWeatherLabel && localWeatherLabel.textContent === "Local") {
             localWeatherLabel.title = localTimeZone.replace(/_/g, " ");
         }
+    }
+
+    async function ensureLocalWeatherController() {
+        if (localWeatherController) {
+            return localWeatherController;
+        }
+
+        if (!localWeatherModulePromise) {
+            localWeatherModulePromise = import("./modules/local-weather.js")
+                .then(({ createLocalWeatherController }) => {
+                    localWeatherController = createLocalWeatherController({
+                        tempEl: localTemp,
+                        labelEl: localWeatherLabel,
+                        metaEl: titleBarMeta,
+                    });
+                    return localWeatherController;
+                })
+                .catch((error) => {
+                    localWeatherModulePromise = null;
+                    throw error;
+                });
+        }
+
+        return localWeatherModulePromise;
+    }
+
+    function refreshLocalWeather() {
+        localWeatherController?.refresh();
     }
 
     function runWhenIdle(callback, timeout = 1600) {
@@ -305,9 +182,48 @@
             runWhenDocumentVisible(() => {
                 if (localWeatherLoadStarted) return;
                 localWeatherLoadStarted = true;
-                loadUserLocationWeather();
+                ensureLocalWeatherController()
+                    .then((controller) => controller.start())
+                    .catch((error) => {
+                        localWeatherLoadStarted = false;
+                        console.error("Failed to load local weather module", error);
+                    });
             });
         });
+    }
+
+    async function ensureTileCatalogLoader() {
+        if (tileCatalogLoader) {
+            return tileCatalogLoader;
+        }
+
+        if (!tileCatalogLoaderPromise) {
+            tileCatalogLoaderPromise = import("./modules/catalog-loader.js")
+                .then(({ createTileCatalogLoader }) => {
+                    tileCatalogLoader = createTileCatalogLoader({
+                        fallbackUrl: tileCatalogFallbackUrl,
+                        remoteUrl: tileCatalogRemoteUrl,
+                        normalizeTileRecord,
+                        compareTiles,
+                        onLoaded: ({ items, source }) => {
+                            tileCatalog = items;
+                            tileCatalogSource = source;
+                            tileCatalogLoaded = true;
+                            requestSync();
+                        },
+                        onError: (error) => {
+                            console.error("Failed to load tile catalog", error);
+                        },
+                    });
+                    return tileCatalogLoader;
+                })
+                .catch((error) => {
+                    tileCatalogLoaderPromise = null;
+                    throw error;
+                });
+        }
+
+        return tileCatalogLoaderPromise;
     }
 
     function getActiveView() {
@@ -769,23 +685,6 @@
         };
     }
 
-    async function loadCatalogSource(sourceUrl) {
-        const response = await fetch(sourceUrl, {
-            headers: {
-                accept: "application/json",
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error(`tile catalog request failed: ${response.status}`);
-        }
-
-        const payload = await response.json();
-        const records = Array.isArray(payload) ? payload : Array.isArray(payload?.items) ? payload.items : [];
-
-        return records.map((tile, index) => normalizeTileRecord(tile, index));
-    }
-
     async function loadTileCatalog() {
         if (tileCatalogLoaded) {
             return tileCatalog;
@@ -795,52 +694,15 @@
             return tileCatalogLoadPromise;
         }
 
-        tileCatalogLoadPromise = (async () => {
-            const mergedCatalog = new Map();
-            let loadedRemote = false;
-            let loadedLocal = false;
-            let lastError = null;
-
-            if (tileCatalogFallbackUrl) {
-                try {
-                    const localRecords = await loadCatalogSource(tileCatalogFallbackUrl);
-                    localRecords.forEach((tile) => {
-                        mergedCatalog.set(tile.id, tile);
-                    });
-                    loadedLocal = true;
-                } catch (error) {
-                    lastError = error;
-                }
-            }
-
-            if (tileCatalogRemoteUrl) {
-                try {
-                    const remoteRecords = await loadCatalogSource(tileCatalogRemoteUrl);
-                    remoteRecords.forEach((tile) => {
-                        mergedCatalog.set(tile.id, tile);
-                    });
-                    loadedRemote = true;
-                } catch (error) {
-                    lastError = error;
-                }
-            }
-
-            if (lastError && !loadedRemote && !loadedLocal) {
-                console.error("Failed to load tile catalog", lastError);
-            }
-
-            tileCatalog = Array.from(mergedCatalog.values()).sort(compareTiles);
-            tileCatalogSource = loadedRemote && loadedLocal
-                ? "merged"
-                : loadedRemote
-                    ? "remote"
-                    : loadedLocal
-                        ? "local"
-                        : "none";
-            tileCatalogLoaded = true;
-            requestSync();
-            return tileCatalog;
-        })();
+        tileCatalogLoadPromise = ensureTileCatalogLoader()
+            .then((loader) => loader.load())
+            .catch((error) => {
+                console.error("Failed to load tile catalog module", error);
+                tileCatalogSource = "none";
+                tileCatalogLoaded = true;
+                requestSync();
+                return tileCatalog;
+            });
 
         try {
             return await tileCatalogLoadPromise;
