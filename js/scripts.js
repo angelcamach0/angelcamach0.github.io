@@ -1595,8 +1595,8 @@
         };
     }
 
-    function parseMkdirTarget(rawCommand) {
-        const match = rawCommand.match(/^mkdir\s+(?:"([^\"]+)"|'([^']+)'|([^\s]+))$/);
+    function parseMkpgTarget(rawCommand) {
+        const match = rawCommand.match(/^mkpg\s+(?:"([^\"]+)"|'([^']+)'|([^\s]+))$/);
         if (!match) return null;
 
         const rawName = (match[1] ?? match[2] ?? match[3] ?? "").trim();
@@ -1705,7 +1705,7 @@
                     "clear",
                     "ls",
                     "cd",
-                    "mkdir",
+                    "mkpg",
                     "rm",
                     "tree",
                     "echo",
@@ -1740,14 +1740,14 @@
                 appendTerminalOutput(`cd: no such location: ${args[0]}`);
                 break;
             }
-            case "mkdir": {
-                const target = parseMkdirTarget(trimmed);
+            case "mkpg": {
+                const target = parseMkpgTarget(trimmed);
                 if (!target) {
-                    appendTerminalOutput('usage: mkdir [name] or mkdir "page name"');
+                    appendTerminalOutput('usage: mkpg [name] or mkpg "page name"');
                     break;
                 }
                 if (getPageNode(target.name)) {
-                    appendTerminalOutput(`mkdir: ${target.name}: already exists`);
+                    appendTerminalOutput(`mkpg: ${target.name}: already exists`);
                     break;
                 }
 
@@ -1755,7 +1755,7 @@
                 insertPageNodeAfter(activeView, pageNode);
                 renderNavigation(activeView);
                 renderTerminal();
-                appendTerminalOutput(`mkdir: created ${target.name}/`);
+                appendTerminalOutput(`mkpg: created ${target.name}/`);
                 break;
             }
             case "rm": {

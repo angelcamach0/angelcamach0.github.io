@@ -1210,6 +1210,72 @@ body::-webkit-scrollbar {
     height: 100%;
     pointer-events: auto;
   }
+
+  .title-bar {
+    box-shadow:
+      0 6px 18px rgba(24, 22, 18, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .title-bar::before {
+    opacity: 0.16;
+  }
+
+  .title-bar__brand {
+    text-shadow:
+      0 0 8px rgba(246, 237, 212, 0.42),
+      0 0 18px rgba(246, 237, 212, 0.22);
+    animation: none;
+  }
+
+  .title-bar__nav a {
+    transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
+  }
+
+  .catalog-view__terminal {
+    animation: none;
+  }
+
+  .terminal-shell {
+    box-shadow:
+      0 12px 28px rgba(28, 24, 18, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .terminal-shell::before {
+    opacity: 0.18;
+  }
+
+  .terminal-shell::after {
+    opacity: 0.08;
+    background-size: 100% 100%, 100% 6px, 100% 100%;
+    background-position: 50% 50%, 0 0, 0 0;
+    animation: none;
+  }
+
+  .bubble {
+    box-shadow:
+      0 10px 24px rgba(34, 30, 24, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: border-color 180ms ease, background-color 180ms ease;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .bubble::before {
+    opacity: 0.18;
+    transition: opacity 180ms ease;
+  }
+
+  .bubble:hover,
+  .bubble--link:hover,
+  .bubble:hover::before {
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
