@@ -81,6 +81,10 @@
     let suppressTapUntil = 0;
     let swipeNavigation = null;
     let localWeatherCoords = null;
+    let localWeatherLoadStarted = false;
+    let localWeatherLoadScheduled = false;
+    let tileCatalogLoadPromise = null;
+    let welcomeLettersBuilt = false;
     let tileFilter = {
         mode: "all",
         value: "all",
@@ -263,6 +267,47 @@
         if (localTimeZone && localWeatherLabel && localWeatherLabel.textContent === "Local") {
             localWeatherLabel.title = localTimeZone.replace(/_/g, " ");
         }
+    }
+
+    function runWhenIdle(callback, timeout = 1600) {
+        if (typeof window.requestIdleCallback === "function") {
+            return window.requestIdleCallback(() => callback(), {
+                timeout,
+            });
+        }
+
+        return window.setTimeout(callback, timeout);
+    }
+
+    function runWhenDocumentVisible(callback) {
+        if (document.visibilityState !== "hidden") {
+            callback();
+            return;
+        }
+
+        function handleVisibilityChange() {
+            if (document.visibilityState === "hidden") return;
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            callback();
+        }
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+    }
+
+    function scheduleLocalWeatherBootstrap() {
+        if (localWeatherLoadStarted || localWeatherLoadScheduled) return;
+
+        localWeatherLoadScheduled = true;
+        runWhenIdle(() => {
+            localWeatherLoadScheduled = false;
+            if (localWeatherLoadStarted) return;
+
+            runWhenDocumentVisible(() => {
+                if (localWeatherLoadStarted) return;
+                localWeatherLoadStarted = true;
+                loadUserLocationWeather();
+            });
+        });
     }
 
     function getActiveView() {
@@ -742,49 +787,66 @@
     }
 
     async function loadTileCatalog() {
-        const mergedCatalog = new Map();
-        let loadedRemote = false;
-        let loadedLocal = false;
-        let lastError = null;
+        if (tileCatalogLoaded) {
+            return tileCatalog;
+        }
 
-        if (tileCatalogFallbackUrl) {
-            try {
-                const localRecords = await loadCatalogSource(tileCatalogFallbackUrl);
-                localRecords.forEach((tile) => {
-                    mergedCatalog.set(tile.id, tile);
-                });
-                loadedLocal = true;
-            } catch (error) {
-                lastError = error;
+        if (tileCatalogLoadPromise) {
+            return tileCatalogLoadPromise;
+        }
+
+        tileCatalogLoadPromise = (async () => {
+            const mergedCatalog = new Map();
+            let loadedRemote = false;
+            let loadedLocal = false;
+            let lastError = null;
+
+            if (tileCatalogFallbackUrl) {
+                try {
+                    const localRecords = await loadCatalogSource(tileCatalogFallbackUrl);
+                    localRecords.forEach((tile) => {
+                        mergedCatalog.set(tile.id, tile);
+                    });
+                    loadedLocal = true;
+                } catch (error) {
+                    lastError = error;
+                }
             }
-        }
 
-        if (tileCatalogRemoteUrl) {
-            try {
-                const remoteRecords = await loadCatalogSource(tileCatalogRemoteUrl);
-                remoteRecords.forEach((tile) => {
-                    mergedCatalog.set(tile.id, tile);
-                });
-                loadedRemote = true;
-            } catch (error) {
-                lastError = error;
+            if (tileCatalogRemoteUrl) {
+                try {
+                    const remoteRecords = await loadCatalogSource(tileCatalogRemoteUrl);
+                    remoteRecords.forEach((tile) => {
+                        mergedCatalog.set(tile.id, tile);
+                    });
+                    loadedRemote = true;
+                } catch (error) {
+                    lastError = error;
+                }
             }
-        }
 
-        if (lastError && !loadedRemote && !loadedLocal) {
-            console.error("Failed to load tile catalog", lastError);
-        }
+            if (lastError && !loadedRemote && !loadedLocal) {
+                console.error("Failed to load tile catalog", lastError);
+            }
 
-        tileCatalog = Array.from(mergedCatalog.values()).sort(compareTiles);
-        tileCatalogSource = loadedRemote && loadedLocal
-            ? "merged"
-            : loadedRemote
-                ? "remote"
-                : loadedLocal
-                    ? "local"
-                    : "none";
-        tileCatalogLoaded = true;
-        requestSync();
+            tileCatalog = Array.from(mergedCatalog.values()).sort(compareTiles);
+            tileCatalogSource = loadedRemote && loadedLocal
+                ? "merged"
+                : loadedRemote
+                    ? "remote"
+                    : loadedLocal
+                        ? "local"
+                        : "none";
+            tileCatalogLoaded = true;
+            requestSync();
+            return tileCatalog;
+        })();
+
+        try {
+            return await tileCatalogLoadPromise;
+        } finally {
+            tileCatalogLoadPromise = null;
+        }
     }
 
     function getCatalogSourceLabel() {
@@ -1522,10 +1584,11 @@
         renderNavigation(nextView);
 
         if (nextView === "grid") {
+            loadTileCatalog();
             requestSync();
             requestAnimationFrame(() => requestAnimationFrame(() => focusTerminal("grid")));
         } else {
-            if (nextView === "home") {
+            if (nextView === "home" && !ensureWelcomeLettersBuilt()) {
                 requestAnimationFrame(resetLetterLayout);
             }
             requestAnimationFrame(() => focusTerminal(nextView));
@@ -1725,7 +1788,7 @@
                 if (homeTitleLabel) {
                     homeTitleLabel.textContent = nextTitle;
                 }
-                buildWelcomeLetters();
+                buildWelcomeLetters(true);
             } else if (page.titleEl) {
                 page.titleEl.textContent = nextTitle;
             }
@@ -1763,7 +1826,7 @@
         requestSync();
     }
 
-    function runTerminalCommand(rawCommand) {
+    async function runTerminalCommand(rawCommand) {
         const trimmed = rawCommand.trim();
 
         if (!trimmed) {
@@ -1875,6 +1938,10 @@
                     break;
                 }
 
+                if (!tileCatalogLoaded) {
+                    appendTerminalOutput("search: loading catalog...");
+                    await loadTileCatalog();
+                }
                 applyTileFilter(search);
                 appendTerminalOutput(formatSearchSummary());
                 break;
@@ -2585,8 +2652,9 @@
         return { width: rect.width, height: rect.height };
     }
 
-    function buildWelcomeLetters() {
+    function buildWelcomeLetters(force = false) {
         if (!welcomeLetters) return;
+        if (welcomeLettersBuilt && !force) return;
 
         welcomeLetters.textContent = "";
         welcomeBodies.length = 0;
@@ -2619,7 +2687,17 @@
             welcomeBodies.push(body);
         });
 
+        welcomeLettersBuilt = true;
         requestAnimationFrame(resetLetterLayout);
+    }
+
+    function ensureWelcomeLettersBuilt() {
+        if (welcomeLettersBuilt) {
+            return false;
+        }
+
+        buildWelcomeLetters();
+        return true;
     }
 
     function startLetterDrag(event, body) {
@@ -2775,10 +2853,8 @@
     });
     renderView();
     renderTerminal();
-    loadTileCatalog();
-    buildWelcomeLetters();
     setInitialLocalMetaState();
-    loadUserLocationWeather();
+    scheduleLocalWeatherBootstrap();
     window.setInterval(updateLocalTime, 1000);
     window.setInterval(refreshLocalWeather, 30 * 60 * 1000);
     window.addEventListener("resize", () => {
