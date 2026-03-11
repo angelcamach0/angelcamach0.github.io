@@ -48,7 +48,6 @@
         ["documents", "doc"],
     ]);
     let homeTitleText = homeStage?.getAttribute("aria-label") || "Welcome.";
-    const welcomeBodies = [];
     const gravity = 2200;
     const bounce = 0.48;
     const floorFriction = 0.985;
@@ -84,7 +83,6 @@
     let tileCatalogLoader = null;
     let tileCatalogLoaderPromise = null;
     let tileCatalogLoadPromise = null;
-    let welcomeLettersBuilt = false;
     let tileFilter = {
         mode: "all",
         value: "all",
@@ -244,9 +242,12 @@
             kind: options.kind || "static",
             titleEl: options.titleEl || null,
             titleLabelEl: options.titleLabelEl || null,
+            titleLettersEl: options.titleLettersEl || null,
             descriptionEl: options.descriptionEl || null,
             titleText: options.titleText || "",
             descriptionText: options.descriptionText || "",
+            titleBodies: options.titleBodies || [],
+            titleLettersBuilt: Boolean(options.titleLettersBuilt),
         };
     }
 
@@ -899,6 +900,7 @@
             kind: "home",
             titleEl: homeStage,
             titleLabelEl: homeTitleLabel,
+            titleLettersEl: welcomeLetters,
             descriptionEl: homeDescription,
             titleText: homeTitleText,
             descriptionText: homeDescription?.textContent?.trim() || "",
@@ -1450,8 +1452,9 @@
             requestSync();
             requestAnimationFrame(() => requestAnimationFrame(() => focusTerminal("grid")));
         } else {
-            if (nextView === "home" && !ensureWelcomeLettersBuilt()) {
-                requestAnimationFrame(resetLetterLayout);
+            const nextPage = getPageNode(nextView);
+            if (nextPage?.titleLettersEl && !ensureWelcomeLettersBuilt(nextPage)) {
+                requestAnimationFrame(() => resetLetterLayout(nextPage));
             }
             requestAnimationFrame(() => focusTerminal(nextView));
         }
@@ -1644,13 +1647,14 @@
 
             if (page.kind === "home") {
                 homeTitleText = nextTitle;
-                if (homeStage) {
-                    homeStage.setAttribute("aria-label", nextTitle.trim() || " ");
+            }
+
+            if (page.titleEl && page.titleLettersEl) {
+                page.titleEl.setAttribute("aria-label", nextTitle.trim() || " ");
+                if (page.titleLabelEl) {
+                    page.titleLabelEl.textContent = nextTitle;
                 }
-                if (homeTitleLabel) {
-                    homeTitleLabel.textContent = nextTitle;
-                }
-                buildWelcomeLetters(true);
+                buildWelcomeLetters(page, true);
             } else if (page.titleEl) {
                 page.titleEl.textContent = nextTitle;
             }
@@ -2058,6 +2062,8 @@
         const aside = document.createElement("aside");
         const copy = document.createElement("div");
         const title = document.createElement("h1");
+        const letters = document.createElement("span");
+        const titleLabel = document.createElement("span");
         const description = document.createElement("p");
 
         section.id = `${pageName}-view`;
@@ -2069,8 +2075,17 @@
         copy.className = "catalog-view__copy";
 
         title.id = `${pageName}-title`;
-        title.className = "dynamic-page__title";
-        title.textContent = titleText;
+        title.className = "dynamic-page__title welcome-stage";
+        title.setAttribute("aria-label", titleText);
+
+        letters.className = "welcome-stage__letters";
+        letters.setAttribute("aria-hidden", "true");
+
+        titleLabel.className = "sr-only";
+        titleLabel.textContent = titleText;
+
+        title.appendChild(letters);
+        title.appendChild(titleLabel);
 
         description.id = `${pageName}-description`;
         description.className = "dynamic-page__description";
@@ -2096,6 +2111,8 @@
             editable: true,
             kind: "dynamic",
             titleEl: title,
+            titleLabelEl: titleLabel,
+            titleLettersEl: letters,
             descriptionEl: description,
             titleText,
             descriptionText: description.textContent,
@@ -2473,26 +2490,37 @@
     }
     requestSync.frame = null;
 
+    function getLetterStagePage(pageOrName = activeView) {
+        const page = typeof pageOrName === "string" ? getPageNode(pageOrName) : pageOrName;
+
+        if (!page?.titleEl || !page?.titleLettersEl) {
+            return null;
+        }
+
+        return page;
+    }
+
     function applyLetterTransform(body) {
         body.el.style.transform = `translate(${body.x}px, ${body.y}px) rotate(${body.rotation}deg)`;
     }
 
-    function resetLetterLayout() {
-        if (!homeStage || !welcomeLetters) return;
+    function resetLetterLayout(pageOrName = activeView) {
+        const page = getLetterStagePage(pageOrName);
+        if (!page) return;
 
-        const stageWidth = welcomeStageBounds().width;
+        const stageWidth = welcomeStageBounds(page).width;
         if (stageWidth < 20) return;
         let cursorX = 0;
         const gap = Math.max(0, stageWidth * 0.008);
 
-        welcomeBodies.forEach((body) => {
+        page.titleBodies.forEach((body) => {
             body.el.style.transform = "translate(0px, 0px) rotate(0deg)";
             const rect = body.el.getBoundingClientRect();
             body.width = rect.width;
             body.height = rect.height;
         });
 
-        welcomeBodies.forEach((body) => {
+        page.titleBodies.forEach((body) => {
             body.homeX = cursorX;
             body.homeY = 0;
             body.x = cursorX;
@@ -2509,21 +2537,42 @@
         });
     }
 
-    function welcomeStageBounds() {
-        const rect = homeStage.getBoundingClientRect();
+    function resetVisibleLetterLayouts() {
+        pageNodes.forEach((page) => {
+            if (!page.titleLettersBuilt || page.element?.hidden) return;
+            resetLetterLayout(page);
+        });
+    }
+
+    function welcomeStageBounds(pageOrName = activeView) {
+        const page = getLetterStagePage(pageOrName);
+        if (!page) {
+            return { width: 0, height: 0 };
+        }
+
+        const rect = page.titleEl.getBoundingClientRect();
         return { width: rect.width, height: rect.height };
     }
 
-    function buildWelcomeLetters(force = false) {
-        if (!welcomeLetters) return;
-        if (welcomeLettersBuilt && !force) return;
+    function buildWelcomeLetters(pageOrName = activeView, force = false) {
+        const page = getLetterStagePage(pageOrName);
+        if (!page) return;
+        if (page.titleLettersBuilt && !force) return;
 
-        welcomeLetters.textContent = "";
-        welcomeBodies.length = 0;
+        if (dragBody && dragBody.pageName === page.name) {
+            dragBody.el.classList.remove("is-dragging");
+            dragBody = null;
+            dragPointerId = null;
+            lastPointerSample = null;
+        }
 
-        Array.from(homeTitleText).forEach((character) => {
+        page.titleLettersEl.textContent = "";
+        page.titleBodies.length = 0;
+
+        Array.from(page.titleText || " ").forEach((character) => {
             const body = {
                 el: document.createElement("span"),
+                pageName: page.name,
                 x: 0,
                 y: 0,
                 vx: 0,
@@ -2543,29 +2592,35 @@
             body.el.className = "welcome-letter";
             body.el.textContent = character === " " ? "\u00A0" : character;
             body.el.setAttribute("aria-hidden", "true");
-            body.el.addEventListener("pointerdown", (event) => startLetterDrag(event, body));
+            body.el.addEventListener("pointerdown", (event) => startLetterDrag(event, page, body));
 
-            welcomeLetters.appendChild(body.el);
-            welcomeBodies.push(body);
+            page.titleLettersEl.appendChild(body.el);
+            page.titleBodies.push(body);
         });
 
-        welcomeLettersBuilt = true;
-        requestAnimationFrame(resetLetterLayout);
+        page.titleLettersBuilt = true;
+        requestAnimationFrame(() => resetLetterLayout(page));
     }
 
-    function ensureWelcomeLettersBuilt() {
-        if (welcomeLettersBuilt) {
+    function ensureWelcomeLettersBuilt(pageOrName = activeView) {
+        const page = getLetterStagePage(pageOrName);
+        if (!page) {
             return false;
         }
 
-        buildWelcomeLetters();
+        if (page.titleLettersBuilt) {
+            return false;
+        }
+
+        buildWelcomeLetters(page);
         return true;
     }
 
-    function startLetterDrag(event, body) {
-        if (!homeStage || homeView.hidden) return;
+    function startLetterDrag(event, pageOrName, body) {
+        const page = getLetterStagePage(pageOrName);
+        if (!page || page.element?.hidden) return;
 
-        const stageRect = homeStage.getBoundingClientRect();
+        const stageRect = page.titleEl.getBoundingClientRect();
         dragBody = body;
         dragPointerId = event.pointerId;
         body.active = true;
@@ -2587,9 +2642,10 @@
     }
 
     function moveDraggedLetter(event) {
-        if (!dragBody || event.pointerId !== dragPointerId || !homeStage) return;
+        const page = dragBody ? getLetterStagePage(dragBody.pageName) : null;
+        if (!dragBody || !page || event.pointerId !== dragPointerId) return;
 
-        const stageRect = homeStage.getBoundingClientRect();
+        const stageRect = page.titleEl.getBoundingClientRect();
         const maxX = stageRect.width - dragBody.width;
         const maxY = stageRect.height - dragBody.height;
         const nextX = event.clientX - stageRect.left - dragBody.dragOffsetX;
@@ -2628,59 +2684,62 @@
     }
 
     function updateWelcomePhysics(deltaSeconds) {
-        if (!homeStage || homeView.hidden) return;
+        pageNodes.forEach((page) => {
+            if (!page.titleLettersBuilt || page.element?.hidden) return;
 
-        const stage = welcomeStageBounds();
+            const stage = welcomeStageBounds(page);
+            if (!stage.width || !stage.height) return;
 
-        welcomeBodies.forEach((body) => {
-            if (body.dragging || !body.active) return;
+            page.titleBodies.forEach((body) => {
+                if (body.dragging || !body.active) return;
 
-            body.vy += gravity * deltaSeconds;
-            body.vx *= 0.997;
-            body.angularVelocity *= 0.995;
+                body.vy += gravity * deltaSeconds;
+                body.vx *= 0.997;
+                body.angularVelocity *= 0.995;
 
-            body.x += body.vx * deltaSeconds;
-            body.y += body.vy * deltaSeconds;
-            body.rotation += body.angularVelocity * deltaSeconds;
+                body.x += body.vx * deltaSeconds;
+                body.y += body.vy * deltaSeconds;
+                body.rotation += body.angularVelocity * deltaSeconds;
 
-            if (body.x <= 0) {
-                body.x = 0;
-                body.vx *= -bounce;
-                body.angularVelocity *= -0.5;
-            }
-
-            if (body.x + body.width >= stage.width) {
-                body.x = Math.max(0, stage.width - body.width);
-                body.vx *= -bounce;
-                body.angularVelocity *= -0.5;
-            }
-
-            if (body.y <= 0) {
-                body.y = 0;
-                body.vy *= -0.28;
-            }
-
-            if (body.y + body.height >= stage.height) {
-                body.y = Math.max(0, stage.height - body.height);
-                body.vy *= -bounce;
-                body.vx *= floorFriction;
-            body.angularVelocity *= 0.88;
-
-                if (Math.abs(body.vy) < 22) {
-                    body.vy = 0;
+                if (body.x <= 0) {
+                    body.x = 0;
+                    body.vx *= -bounce;
+                    body.angularVelocity *= -0.5;
                 }
-                if (Math.abs(body.vx) < 8) {
-                    body.vx = 0;
-                }
-                if (Math.abs(body.angularVelocity) < 4) {
-                    body.angularVelocity = 0;
-                }
-                if (body.vx === 0 && body.vy === 0 && body.angularVelocity === 0) {
-                    body.active = false;
-                }
-            }
 
-            applyLetterTransform(body);
+                if (body.x + body.width >= stage.width) {
+                    body.x = Math.max(0, stage.width - body.width);
+                    body.vx *= -bounce;
+                    body.angularVelocity *= -0.5;
+                }
+
+                if (body.y <= 0) {
+                    body.y = 0;
+                    body.vy *= -0.28;
+                }
+
+                if (body.y + body.height >= stage.height) {
+                    body.y = Math.max(0, stage.height - body.height);
+                    body.vy *= -bounce;
+                    body.vx *= floorFriction;
+                    body.angularVelocity *= 0.88;
+
+                    if (Math.abs(body.vy) < 22) {
+                        body.vy = 0;
+                    }
+                    if (Math.abs(body.vx) < 8) {
+                        body.vx = 0;
+                    }
+                    if (Math.abs(body.angularVelocity) < 4) {
+                        body.angularVelocity = 0;
+                    }
+                    if (body.vx === 0 && body.vy === 0 && body.angularVelocity === 0) {
+                        body.active = false;
+                    }
+                }
+
+                applyLetterTransform(body);
+            });
         });
     }
 
@@ -2694,7 +2753,9 @@
 
         updateWelcomePhysics(deltaSeconds);
 
-        const hasActiveLetters = welcomeBodies.some((body) => body.active || body.dragging);
+        const hasActiveLetters = Array.from(pageNodes.values()).some((page) =>
+            page.titleBodies.some((body) => body.active || body.dragging)
+        );
         if (hasActiveLetters || dragBody) {
             physicsFrame = window.requestAnimationFrame(physicsTick);
         } else {
@@ -2721,7 +2782,7 @@
     window.setInterval(refreshLocalWeather, 30 * 60 * 1000);
     window.addEventListener("resize", () => {
         requestSync();
-        resetLetterLayout();
+        resetVisibleLetterLayouts();
         syncTerminalScroll();
         if (cmatrixActive) {
             terminalInstances.forEach((instance) => resizeCmatrixLayer(instance));

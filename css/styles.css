@@ -729,6 +729,10 @@ body::-webkit-scrollbar {
   text-transform: uppercase;
 }
 
+.dynamic-page__title .welcome-letter {
+  font-size: clamp(3.2rem, 8vw, 6.8rem);
+}
+
 .dynamic-page__description {
   margin: 0;
 }
@@ -851,6 +855,13 @@ body::-webkit-scrollbar {
   gap: 6px;
 }
 
+@supports (content-visibility: auto) {
+  .bubble--content .bubble__content {
+    content-visibility: auto;
+    contain: layout paint;
+  }
+}
+
 .bubble__label {
   position: absolute;
   top: 12px;
@@ -927,6 +938,14 @@ body::-webkit-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(215, 199, 164, 0.45) rgba(255, 248, 232, 0.04);
   pointer-events: auto;
+}
+
+@supports (contain: layout paint) {
+  .bubble__preview,
+  .bubble__preview-text,
+  .bubble__preview-markdown {
+    contain: layout paint;
+  }
 }
 
 .bubble--content .bubble__preview {
