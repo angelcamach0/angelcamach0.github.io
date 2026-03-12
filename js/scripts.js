@@ -71,6 +71,11 @@
     let tileCatalog = [];
     let tileCatalogLoaded = false;
     let tileCatalogSource = "local";
+    let calculatorTileVisible = false;
+    let calculatorFocusRequested = false;
+    let calculatorController = null;
+    let calculatorModulePromise = null;
+    let calculatorModuleError = null;
     const tilePreviewCache = new Map();
     const tilePreviewRequests = new Map();
     let invertHideTimer = null;
@@ -222,6 +227,39 @@
         }
 
         return tileCatalogLoaderPromise;
+    }
+
+    async function ensureCalculatorController() {
+        if (calculatorController) {
+            return calculatorController;
+        }
+
+        if (!calculatorModulePromise) {
+            calculatorModulePromise = import("./modules/calculator-tile.js")
+                .then(({ createCalculatorTileController }) => {
+                    calculatorController = createCalculatorTileController();
+                    calculatorModuleError = null;
+                    return calculatorController;
+                })
+                .catch((error) => {
+                    calculatorModulePromise = null;
+                    calculatorModuleError = error;
+                    throw error;
+                });
+        }
+
+        return calculatorModulePromise;
+    }
+
+    function requestCalculatorController() {
+        ensureCalculatorController()
+            .then(() => {
+                requestSync();
+            })
+            .catch((error) => {
+                console.error("Failed to load calculator tile module", error);
+                requestSync();
+            });
     }
 
     function getActiveView() {
@@ -576,11 +614,27 @@
         };
     }
 
+    function createCalculatorTile() {
+        return {
+            id: "__calculator__",
+            type: "tool",
+            title: "Calculator",
+            summary: "Quick arithmetic in a grid tile.",
+            repo: "site",
+            path: "tools/calc",
+            tags: ["tool", "calculator"],
+            href: "",
+            order: -2,
+            virtual: true,
+        };
+    }
+
     function getVisibleCatalogTiles() {
         const filtered = filterTileCatalog();
+        const visible = calculatorTileVisible ? [createCalculatorTile(), ...filtered] : filtered;
 
-        if (filtered.length > 0) {
-            return filtered;
+        if (visible.length > 0) {
+            return visible;
         }
 
         if (!tileCatalogLoaded) {
@@ -1450,7 +1504,9 @@
         if (nextView === "grid") {
             loadTileCatalog();
             requestSync();
-            requestAnimationFrame(() => requestAnimationFrame(() => focusTerminal("grid")));
+            if (!calculatorFocusRequested) {
+                requestAnimationFrame(() => requestAnimationFrame(() => focusTerminal("grid")));
+            }
         } else {
             const nextPage = getPageNode(nextView);
             if (nextPage?.titleLettersEl && !ensureWelcomeLettersBuilt(nextPage)) {
@@ -1692,6 +1748,27 @@
         requestSync();
     }
 
+    async function openCalculatorTile() {
+        calculatorTileVisible = true;
+        calculatorFocusRequested = true;
+        let loaded = true;
+
+        try {
+            await ensureCalculatorController();
+        } catch (error) {
+            loaded = false;
+            console.error("Failed to load calculator tile module", error);
+        }
+
+        if (activeView !== "grid") {
+            window.location.hash = "#grid";
+            return loaded;
+        }
+
+        requestSync();
+        return loaded;
+    }
+
     async function runTerminalCommand(rawCommand) {
         const trimmed = rawCommand.trim();
 
@@ -1714,6 +1791,7 @@
                     "tree",
                     "echo",
                     "search",
+                    "calc",
                     "cmatrix",
                     "help",
                 ].join("\n"));
@@ -1810,6 +1888,11 @@
                 }
                 applyTileFilter(search);
                 appendTerminalOutput(formatSearchSummary());
+                break;
+            }
+            case "calc": {
+                const loaded = await openCalculatorTile();
+                appendTerminalOutput(loaded ? "calc: opened calculator tile" : "calc: calculator unavailable");
                 break;
             }
             case "cmatrix":
@@ -2124,7 +2207,7 @@
         if (!(bubble instanceof HTMLElement)) return;
 
         bubble.classList.add("bubble--terminal");
-        bubble.classList.remove("bubble--content", "bubble--empty");
+        bubble.classList.remove("bubble--content", "bubble--empty", "bubble--calculator");
         bubble.dataset.tileId = "__terminal__";
         bubble.dataset.tileType = "terminal";
         bubble.dataset.previewMode = "none";
@@ -2392,6 +2475,80 @@
         });
     }
 
+    function mountCalculatorPreview(previewEl) {
+        if (!previewEl) return;
+
+        previewEl.hidden = false;
+        previewEl.className = "bubble__preview bubble__preview--calculator";
+        previewEl.textContent = "";
+        previewEl.replaceChildren();
+
+        if (calculatorModuleError) {
+            calculatorFocusRequested = false;
+            previewEl.classList.add("bubble__preview--error");
+            previewEl.textContent = "Calculator unavailable";
+            return;
+        }
+
+        if (!calculatorController) {
+            previewEl.classList.add("bubble__preview--loading");
+            previewEl.textContent = "Loading calculator...";
+            requestCalculatorController();
+            return;
+        }
+
+        calculatorController.mount(previewEl);
+
+        if (calculatorFocusRequested) {
+            calculatorFocusRequested = false;
+            requestAnimationFrame(() => calculatorController?.focus());
+        }
+    }
+
+    function renderCalculatorBubble(bubble, slotIndex) {
+        const label = bubble.querySelector(".bubble__label");
+        const kind = bubble.querySelector(".bubble__kind");
+        const title = bubble.querySelector(".bubble__title");
+        const preview = bubble.querySelector(".bubble__preview");
+        const summary = bubble.querySelector(".bubble__summary");
+        const source = bubble.querySelector(".bubble__source");
+        const tags = bubble.querySelector(".bubble__tags");
+
+        bubble.classList.remove("bubble--terminal", "bubble--empty");
+        bubble.classList.add("bubble--content", "bubble--calculator");
+        bubble.dataset.tileId = "__calculator__";
+        bubble.dataset.tileType = "tool";
+        bubble.dataset.repo = "site";
+        bubble.dataset.path = "tools/calc";
+        bubble.dataset.previewMode = "calculator";
+        clearBubbleAction(bubble);
+
+        if (label) {
+            label.textContent = getBubbleTitle(slotIndex);
+        }
+        if (kind) {
+            kind.hidden = false;
+            kind.textContent = "tool";
+        }
+        if (title) {
+            title.textContent = "Calculator";
+        }
+        if (summary) {
+            summary.hidden = true;
+            summary.textContent = "";
+        }
+        if (source) {
+            source.hidden = true;
+            source.textContent = "";
+        }
+        if (tags) {
+            tags.hidden = true;
+            tags.textContent = "";
+        }
+
+        mountCalculatorPreview(preview);
+    }
+
     function renderCatalogBubble(bubble, tile, slotIndex) {
         const label = bubble.querySelector(".bubble__label");
         const kind = bubble.querySelector(".bubble__kind");
@@ -2403,6 +2560,7 @@
 
         bubble.classList.remove("bubble--terminal");
         bubble.classList.add("bubble--content");
+        bubble.classList.remove("bubble--calculator");
         bubble.classList.toggle("bubble--empty", Boolean(tile.virtual));
         bubble.dataset.tileId = tile.id;
         bubble.dataset.tileType = tile.type;
@@ -2415,6 +2573,7 @@
             label.textContent = getBubbleTitle(slotIndex);
         }
         if (kind) {
+            kind.hidden = false;
             kind.textContent = tile.type;
         }
         if (title) {
@@ -2422,12 +2581,17 @@
         }
         renderTilePreview(preview, tile);
         if (summary) {
+            summary.hidden = false;
             summary.textContent = tile.summary;
         }
         if (source) {
+            source.hidden = false;
             source.textContent = formatTileSource(tile);
         }
 
+        if (tags) {
+            tags.hidden = false;
+        }
         renderBubbleTags(tags, tile.tags || []);
     }
 
@@ -2471,6 +2635,10 @@
 
             const tile = visibleTiles[index - 1];
             if (!tile) return;
+            if (tile.id === "__calculator__") {
+                renderCalculatorBubble(bubble, index);
+                return;
+            }
             renderCatalogBubble(bubble, tile, index);
         });
 

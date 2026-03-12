@@ -961,6 +961,101 @@ body::-webkit-scrollbar {
   pointer-events: auto;
 }
 
+.bubble--calculator .bubble__preview {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.calculator-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  min-height: 100%;
+  padding: 2px;
+  outline: none;
+}
+
+.calculator-tile__display {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 3rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(215, 199, 164, 0.18);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 232, 0.05), rgba(255, 248, 232, 0.02)),
+    rgba(15, 16, 19, 0.78);
+  color: #f6edd4;
+  font-family: "Courier New", "Lucida Console", monospace;
+  font-size: clamp(1rem, 1.4vw, 1.35rem);
+  font-weight: 700;
+  line-height: 1;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calculator-tile__keys {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  flex: 1 1 auto;
+}
+
+.calculator-tile__button {
+  min-height: 2.5rem;
+  padding: 0.55rem 0.45rem;
+  border: 1px solid rgba(215, 199, 164, 0.2);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 232, 0.05), rgba(255, 248, 232, 0.02)),
+    rgba(17, 18, 21, 0.82);
+  color: #f3e7c2;
+  font-family: "Courier New", "Lucida Console", monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+
+.calculator-tile__button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(244, 233, 205, 0.38);
+}
+
+.calculator-tile__button:focus-visible {
+  outline: none;
+  border-color: rgba(244, 234, 208, 0.7);
+  box-shadow:
+    0 0 0 1px rgba(244, 234, 208, 0.36),
+    0 0 0 3px rgba(215, 199, 164, 0.12);
+}
+
+.calculator-tile__button--muted {
+  color: rgba(243, 231, 194, 0.84);
+  background:
+    linear-gradient(180deg, rgba(255, 248, 232, 0.05), rgba(255, 248, 232, 0.02)),
+    rgba(56, 48, 34, 0.72);
+}
+
+.calculator-tile__button--accent {
+  background:
+    linear-gradient(180deg, rgba(244, 234, 208, 0.28), rgba(244, 234, 208, 0.16)),
+    rgba(132, 100, 49, 0.68);
+  color: #fff8e8;
+}
+
+.calculator-tile__button--wide {
+  grid-column: span 2;
+}
+
 .bubble__preview--loading,
 .bubble__preview--error,
 .bubble__preview--pdf {

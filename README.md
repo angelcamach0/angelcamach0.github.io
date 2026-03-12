@@ -18,6 +18,10 @@ Run locally
 3) Open in your browser:
    - `http://localhost:4269`
 
+Terminal extras
+- Run `calc` in any site terminal to open the built-in calculator as a Grid tile.
+- The calculator is client-side only and lives in `js/modules/calculator-tile.js`.
+
 Cloudflare content layer
 - R2 is the planned primary file store for published content.
 - A small Worker exposes the bucket as a tile catalog for the frontend.
